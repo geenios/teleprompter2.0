@@ -178,6 +178,19 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Inter'
 #readTimeEl{font-size:11px;color:var(--muted);}
 .speed-label{display:flex;align-items:baseline;gap:8px;min-width:0;}
 
+/* 2.0: Direct is the only view — hide the legacy Edit/Direct + undo/redo toolbar buttons */
+#editorModeBtn,#directorModeBtn,#undoBtn,#redoBtn{display:none!important;}
+/* Inline section editor */
+.dv-empty{color:var(--muted);font-size:14px;padding:24px;text-align:center;cursor:text;border:1px dashed var(--border);border-radius:8px;margin:8px;}
+.dv-empty:hover{border-color:var(--accent);color:var(--text);}
+.dv-edit-wrap{border:1px solid var(--accent);border-radius:8px;margin:4px 2px;background:var(--panel-2);}
+.dv-edit-toolbar{display:flex;gap:6px;align-items:center;padding:5px 8px;border-bottom:1px solid var(--border);}
+.dv-edit-btn{background:var(--panel);color:var(--text);border:1px solid var(--border);border-radius:5px;min-width:28px;height:24px;padding:0 8px;font-size:12px;cursor:pointer;}
+.dv-edit-btn:hover{border-color:var(--accent);color:var(--accent);}
+.dv-edit-btn.done{margin-left:auto;background:var(--accent);color:#000;border-color:var(--accent);font-weight:700;}
+.dv-editable{font-size:14px;line-height:1.6;color:var(--text);padding:8px 10px;outline:none;white-space:pre-wrap;word-wrap:break-word;min-height:1.6em;}
+.dv-editable u{text-decoration:underline;}
+
 /* Existing comment and input: span full width below sentence, in grid col 2 */
 .dv-existing-comment{
   grid-column:2;font-size:12px;color:var(--muted);background:var(--panel-2);
@@ -509,7 +522,7 @@ let session=(()=>{try{const r=localStorage.getItem(SESSION_KEY);if(r){const s=JS
 
 // ── PROMPTER STATE ────────────────────────────────────────
 let state={text:'',fontSize:75,fontFamily:'opensans',wpm:130,marginL:6,marginR:6,lineHeight:1.5,mirroredH:false,mirroredV:false,playState:'paused'};
-function syncScript(){state.text=getActiveScript().text;}
+function syncScript(){state.text=getActiveScript().text;state.underlines=underlineRanges();}
 syncScript();
 
 // ── MODE ──────────────────────────────────────────────────
@@ -678,11 +691,18 @@ let _dvPrevStart=-1, _dvLastRow=null;
 function renderDirectorView(){
   const scr=getActiveScript(),notes=getNotesFor(scr.id),secs=getParagraphs(scr.text);
   directorView.innerHTML='';
-  if(!secs.length){directorView.innerHTML='<div style="color:var(--muted);font-size:14px;padding:20px;text-align:center;">Switch to Editor to write the script.</div>';return;}
+  if(!secs.length){
+    const empty=document.createElement('div');
+    empty.className='dv-empty';
+    empty.textContent='Double-click to write your script…';
+    empty.addEventListener('dblclick',()=>editSection(empty,{offset:0,text:''}));
+    directorView.appendChild(empty);return;
+  }
   secs.forEach((sec,sIdx)=>{
     const sNote=notes[`s_${sIdx}`]||{};
     const div=document.createElement('div');
     div.className='dv-section'+(sNote.checked?' done':'');
+    div.addEventListener('dblclick',e=>{if(!_editing){e.preventDefault();editSection(div,sec);}});
     const sentsEl=document.createElement('div');
     sec.sentences.forEach((sent,sentIdx)=>{
       const key=`${sIdx}_${sentIdx}`;
@@ -702,8 +722,9 @@ function renderDirectorView(){
       row.appendChild(cb);
       // Sentence text
       const textEl=document.createElement('span');
-      textEl.className='dv-sent-text';textEl.textContent=sent.text;
-      textEl.onclick=()=>{
+      textEl.className='dv-sent-text';textEl.innerHTML=richHtml(sent.text,sent.offset,underlineRanges());
+      textEl.onclick=e=>{
+        if(e.detail>1)return; // ignore the click half of a double-click (which opens edit)
         const pct=lineSeekPct(sent.offset);
         scrollPct=pct;sendUpdate('seek',pct);correctPreview(pct);renderHighlight();updateScrubber();
       };
@@ -773,12 +794,9 @@ function highlightDirector(){
     directorView.querySelectorAll('.dv-sentence-row').forEach(row=>{
       const s=parseInt(row.dataset.start),e=parseInt(row.dataset.end),raw=row.dataset.raw||'';
       const textEl=row.querySelector('.dv-sent-text');
-      if(e<=startChar||s>=endChar){textEl.textContent=raw;}
-      else{
-        const vs=Math.max(0,startChar-s),ve=Math.min(raw.length,endChar-s);
-        textEl.innerHTML=escHtml(raw.slice(0,vs))+(ve>vs?'<mark class="dv-hl">'+escHtml(raw.slice(vs,ve))+'</mark>':'')+escHtml(raw.slice(ve));
-        if(!first)first=row;
-      }
+      const overlaps=!(e<=startChar||s>=endChar);
+      textEl.innerHTML=overlaps?richHtml(raw,s,underlineRanges(),startChar,endChar):richHtml(raw,s,underlineRanges());
+      if(overlaps&&!first)first=row;
     });
   } else {
     first=directorView.querySelector('mark.dv-hl')?.closest('.dv-sentence-row')||null;
@@ -866,11 +884,10 @@ function switchTo(id){
   getActiveScript().text=textArea.value;
   session.activeId=id;
   syncScript();
-  textArea.value=state.text;state.text=textArea.value;previewText.textContent=state.text;
+  textArea.value=state.text;renderPreview();
   sentenceStarts=buildSentenceStarts(state.text);sentenceIdx=0;
-  renderTabs();renderControls();
-  if(uiMode==='director')renderDirectorView();
-  sendUpdate('text',state.text);
+  renderTabs();renderControls();renderDirectorView();
+  sendScriptText();
   try{localStorage.setItem(SESSION_KEY,JSON.stringify(session));}catch(e){}
 }
 function addScript(){
@@ -886,7 +903,7 @@ function deleteScript(id){
     modal.style.display='none';
     session.scripts=session.scripts.filter(s=>s.id!==id);
     if(session.activeId===id)session.activeId=session.scripts[0].id;
-    persistSession();syncScript();textArea.value=state.text;renderTabs();renderControls();sendUpdate('text',state.text);
+    persistSession();syncScript();textArea.value=state.text;renderTabs();renderControls();renderDirectorView();sendScriptText();
   };
   document.getElementById('deleteModalCancel').onclick=()=>{modal.style.display='none';};
   modal.onclick=e=>{if(e.target===modal)modal.style.display='none';};
@@ -923,7 +940,7 @@ function doLoadFile(file){
     try{const loaded=JSON.parse(ev.target.result);if(!loaded.scripts)throw 0;
       session=loaded;if(!session.notes)session.notes={};persistSession();syncScript();
       textArea.value=state.text;sentenceStarts=buildSentenceStarts(state.text);sentenceIdx=0;
-      renderTabs();renderControls();sendUpdate('text',state.text);
+      renderTabs();renderControls();renderDirectorView();sendScriptText();
     }catch(e){alert('Could not load session file.');}
   };reader.readAsText(file);fileInput.value='';
 }
@@ -948,9 +965,8 @@ restoreBtn.onclick=()=>{
     const s=JSON.parse(localStorage.getItem(AUTOSAVE_KEY));
     if(s&&s.session){
       session=s.session;if(!session.notes)session.notes={};
-      syncScript();textArea.value=state.text;state.text=textArea.value;
-      previewText.textContent=state.text;sentenceStarts=buildSentenceStarts(state.text);
-      renderTabs();renderControls();if(uiMode==='director')renderDirectorView();sendUpdate('text',state.text);
+      syncScript();textArea.value=state.text;renderPreview();sentenceStarts=buildSentenceStarts(state.text);
+      renderTabs();renderControls();renderDirectorView();sendScriptText();
     }
   }catch(e){}
   if(restoreNotice)restoreNotice.classList.remove('visible');
@@ -976,7 +992,7 @@ function renderControls(){
   mirrorVBtn.classList.toggle('active',state.mirroredV);
   playBtn.textContent=state.playState==='playing'?'Pause':'Play';
   playBtn.classList.toggle('active',state.playState==='playing');
-  previewText.textContent=state.text;
+  renderPreview();
   previewText.style.fontFamily=(FONTS[state.fontFamily]||FONTS.opensans).stack;
   previewText.style.paddingLeft=mgL+'%';
   previewText.style.paddingRight=mgR+'%';
@@ -1071,31 +1087,43 @@ previewBox.addEventListener('pointerup',endPD);previewBox.addEventListener('poin
 previewBox.addEventListener('wheel',e=>{e.preventDefault();scrubPx(e.deltaY*WS);},{passive:false});
 
 // ── DOM-BASED HIGHLIGHT ───────────────────────────────────
-function getTextNode(){const n=previewText.firstChild;return(n&&n.nodeType===Node.TEXT_NODE&&n.length)?n:null;}
-function caretAt(x,y,tn){
-  if(document.caretRangeFromPoint){const r=document.caretRangeFromPoint(x,y);if(r){if(r.startContainer===tn)return r.startOffset;if(r.startContainer===previewText)return r.startOffset===0?0:tn.length;}}
-  else if(document.caretPositionFromPoint){const p=document.caretPositionFromPoint(x,y);if(p){if(p.offsetNode===tn)return p.offset;if(p.offsetNode===previewText)return p.offset===0?0:tn.length;}}
+// Preview may contain <u> spans, so the script is spread across many text nodes.
+// These walk all of them, mapping carets ↔ global character offsets.
+function previewTextNodes(){const a=[];const w=document.createTreeWalker(previewText,NodeFilter.SHOW_TEXT,null);let n;while((n=w.nextNode()))a.push(n);return a;}
+function caretToOffset(container,off){
+  if(container===previewText){let g=0;for(let i=0;i<off&&i<previewText.childNodes.length;i++)g+=previewText.childNodes[i].textContent.length;return g;}
+  let g=0;for(const n of previewTextNodes()){if(n===container)return g+off;g+=n.nodeValue.length;}
+  return g;
+}
+function caretAt(x,y){
+  if(document.caretRangeFromPoint){const r=document.caretRangeFromPoint(x,y);if(r)return caretToOffset(r.startContainer,r.startOffset);}
+  else if(document.caretPositionFromPoint){const p=document.caretPositionFromPoint(x,y);if(p)return caretToOffset(p.offsetNode,p.offset);}
   return null;
 }
+function offsetToPreviewPoint(offset){
+  let rem=offset,last=null;for(const n of previewTextNodes()){const len=n.nodeValue.length;if(rem<=len)return{node:n,offset:rem};rem-=len;last=n;}
+  return last?{node:last,offset:last.nodeValue.length}:null;
+}
 function getHighlightRange(){
-  const text=state.text,tn=getTextNode();
-  if(!tn||!text.length)return{startChar:0,endChar:0};
+  const text=state.text;
+  if(!text.length)return{startChar:0,endChar:0};
   const rect=previewBox.getBoundingClientRect();
   if(!rect.width||!rect.height)return{startChar:0,endChar:0};
   const x=rect.left+2;
-  let s=caretAt(x,rect.top+1,tn),e=caretAt(x,rect.bottom-1,tn);
-  if(s===null)s=0;if(e===null)e=text.length;if(e<s){const t=s;s=e;e=t;}
+  let s=caretAt(x,rect.top+1),e=caretAt(x,rect.bottom-1);
+  if(s==null)s=0;if(e==null)e=text.length;if(e<s){const t=s;s=e;e=t;}
   while(s>0&&/\S/.test(text[s-1])&&/\S/.test(text[s]))s--;
   while(e<text.length&&e>0&&/\S/.test(text[e-1])&&/\S/.test(text[e]))e++;
   return{startChar:s,endChar:e};
 }
 function scrollPctFromChar(ci){
-  const tn=getTextNode(),max=Math.max(0,previewText.scrollHeight-previewBox.clientHeight);
-  if(!tn||!max)return 0;ci=Math.max(0,Math.min(ci,tn.length));
-  const range=document.createRange();
-  if(ci>=tn.length){range.setStart(tn,Math.max(0,tn.length-1));range.setEnd(tn,tn.length);}
-  else{range.setStart(tn,ci);range.setEnd(tn,ci+1);}
-  const rects=range.getClientRects();if(!rects.length)return scrollPct;
+  const max=Math.max(0,previewText.scrollHeight-previewBox.clientHeight),total=previewText.textContent.length;
+  if(!total||!max)return 0;ci=Math.max(0,Math.min(ci,total-1));
+  const p=offsetToPreviewPoint(ci);if(!p)return scrollPct;
+  const range=document.createRange();range.setStart(p.node,p.offset);range.setEnd(p.node,Math.min(p.offset+1,p.node.nodeValue.length));
+  let rects=range.getClientRects();
+  if(!rects.length){const p2=offsetToPreviewPoint(ci+1);if(p2){range.setEnd(p2.node,p2.offset);rects=range.getClientRects();}}
+  if(!rects.length)return scrollPct;
   const br=previewBox.getBoundingClientRect();
   return Math.max(0,Math.min(1,((rects[0].top-br.top)+previewBox.scrollTop)/max));
 }
@@ -1233,11 +1261,8 @@ function setTextCollapsed(c){
 textToggle.onclick=()=>setTextCollapsed(!textSettings.classList.contains('collapsed'));
 try{if(localStorage.getItem('tp_text_collapsed')==='1')setTextCollapsed(true);}catch(e){}
 
-textArea.oninput=()=>{
-  const v=textArea.value;setTimeout(()=>sendUpdate('text',v),250);
-  getActiveScript().text=v;state.text=v;previewText.textContent=v;
-  sentenceStarts=buildSentenceStarts(v);renderHighlight();autosave();updateReadTime();computePreviewPxPerWord();sendSectionBreaks();sendSentenceMarkers();
-};
+// Hidden textarea is now only an internal buffer; editing happens inline in Direct mode.
+textArea.oninput=()=>{ applyTextChange(textArea.value); };
 undoBtn.onclick=()=>{textArea.focus();document.execCommand('undo');};
 redoBtn.onclick=()=>{textArea.focus();document.execCommand('redo');};
 copyBtn.onclick=async()=>{try{await navigator.clipboard.writeText(state.text);const o=copyBtn.textContent;copyBtn.textContent='Copied';setTimeout(()=>{copyBtn.textContent=o;},1200);}catch(e){copyBtn.textContent='Failed';setTimeout(()=>{copyBtn.textContent='Copy';},1200);}};
@@ -1329,6 +1354,8 @@ function enterMainPanel(){
   persistentCode.textContent=peerCode;
   renderTabs();syncScript();textArea.value=state.text;
   sentenceStarts=buildSentenceStarts(state.text);
+  setMode('director');                                   // 2.0: Direct is the only view
+  renderControls();
   updateMonitorScale();updateScrubber();updateMarginUI(state.marginL,state.marginR);checkRestore();
   setTimeout(()=>{updateReadTime();sendSectionBreaks();sendSentenceMarkers();},120);
   // Send current script to prompter now that the session is chosen
@@ -1435,6 +1462,6 @@ setInterval(()=>{
   }
 },2000);
 </script>
-<div style="position:fixed;bottom:6px;right:8px;font-size:10px;color:rgba(255,255,255,0.25);font-family:'Inter',sans-serif;pointer-events:none;z-index:9999;letter-spacing:.04em;">v29.8</div>
+<div style="position:fixed;bottom:6px;right:8px;font-size:10px;color:rgba(255,255,255,0.25);font-family:'Inter',sans-serif;pointer-events:none;z-index:9999;letter-spacing:.04em;">v2.0·p3</div>
 </body>
 </html>
