@@ -1,0 +1,12 @@
+{
+  "name": "Teleprompter",
+  "short_name": "Prompter",
+  "display": "fullscreen",
+  "orientation": "landscape-primary",
+  "background_color": "#000000",
+  "theme_color": "#000000",
+  "start_url": "prompter.html",
+  "scope": "./",
+  "description": "Teleprompter app connected to the control page",
+  "icons": []
+}
