@@ -86,8 +86,8 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Inter'
 .tb-right{margin-left:auto;display:flex;gap:4px;align-items:center;}
 #saveStatus{font-size:11px;color:var(--muted);margin-left:8px;white-space:nowrap;}
 .tb-btn{background:var(--panel-2);color:var(--text);border:1px solid var(--border);border-radius:8px;height:28px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:12px;padding:0 10px;white-space:nowrap;}
-.tb-btn.icon{width:28px;padding:0;}
-.tb-btn.icon svg{width:13px;height:13px;}
+.tb-btn.icon{min-width:32px;padding:0;}
+.tb-btn.icon svg{width:15px;height:15px;}
 .tb-btn:hover{border-color:var(--accent);color:var(--accent);}
 .tb-btn.mode{padding:0 16px;font-size:13px;}
 .tb-btn.mode.active{border-color:var(--accent);color:var(--accent);}
@@ -114,7 +114,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Inter'
 .dv-section{padding:6px 0;border-bottom:1px solid var(--border);}
 .dv-section:last-child{border-bottom:none;}
 .dv-sentence-row{
-  display:grid;grid-template-columns:22px 1fr;
+  display:grid;grid-template-columns:40px 1fr;
   padding:3px 60px 3px 4px;/* right padding reserves space for abs button */
   border-radius:8px;position:relative;
 }
@@ -134,7 +134,9 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Inter'
   transform:rotate(45deg);
 }
 .section-first .dv-check{visibility:visible;}
-.dv-snum{grid-column:1;font-size:9px;font-weight:700;color:var(--muted);text-align:center;line-height:1;margin-top:3px;user-select:none;}
+.dv-gutter{grid-column:1;grid-row:1;display:flex;align-items:center;gap:4px;align-self:start;margin-top:3px;}
+.dv-gutter .dv-check{margin-top:0;}
+.dv-num{font-size:11px;font-weight:700;color:var(--accent);line-height:1;user-select:none;}
 .dv-sent-text{font-size:14px;line-height:1.6;color:var(--text);cursor:pointer;display:block;grid-column:2;}
 .dv-hl{background:rgba(255,200,0,.75);border-radius:2px;color:inherit;}
 .dv-section.done .dv-sent-text{color:var(--muted);text-decoration:line-through;}
@@ -167,11 +169,14 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Inter'
 
 /* Director toolbar */
 #directorTools{display:none;align-items:center;gap:4px;margin-left:2px;}
-.tb-btn.dv-active{background:rgba(255,200,0,.12);color:var(--accent);border-color:var(--accent);}
-/* Director sub-controls: smaller, lighter */
-.tb-btn.dv-ctrl{height:24px;font-size:11px;padding:0 9px;background:transparent;border-color:rgba(255,255,255,.15);color:var(--muted);}
-.tb-btn.dv-ctrl:disabled{opacity:.3;cursor:default;}
-.tb-btn.dv-ctrl.dv-active{background:rgba(255,200,0,.12);color:var(--accent);border-color:var(--accent);}
+/* Toolbar action buttons: solid + clearly clickable */
+.tb-btn.dv-ctrl{height:28px;min-width:32px;font-size:15px;padding:0 8px;background:var(--panel-2);border:1px solid var(--border);color:var(--text);}
+.tb-btn.dv-ctrl:hover:not(:disabled){border-color:var(--accent);color:var(--accent);}
+.tb-btn.dv-ctrl:disabled{opacity:.35;cursor:default;}
+/* Active toggle state (pause/loop/edit-all on): filled accent — unmistakably "on" */
+.tb-btn.dv-active,.tb-btn.dv-ctrl.dv-active{background:var(--accent);color:#000;border-color:var(--accent);font-weight:700;}
+/* Proximity grouping: separate the playback toggles from the edit tools */
+#sectionPauseBtn{margin-left:12px;}
 /* Mode buttons: keep standard height, add slight weight */
 .tb-btn.mode{font-weight:600;}
 .tb-btn:disabled{opacity:.35;cursor:default;}
@@ -188,14 +193,14 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Inter'
 .dv-editable{font-size:14px;line-height:1.6;color:var(--text);padding:6px 8px;outline:none;white-space:pre-wrap;word-wrap:break-word;min-height:1.6em;border-radius:8px;box-shadow:inset 0 0 0 1px var(--accent);background:rgba(255,200,0,.04);}
 .dv-editable u{text-decoration:underline;}
 .dv-editable.edit-all{min-height:70vh;box-shadow:none;background:none;padding:0 4px 40vh;counter-reset:para;}
-/* Paragraphs in the edit-all box: same spacing + dividers as Direct mode, with S-numbers */
-.dv-editable.edit-all>div{position:relative;padding:6px 4px 6px 30px;border-bottom:1px solid var(--border);counter-increment:para;}
+/* Paragraphs in the edit-all box: same spacing + dividers as Direct mode, with #numbers */
+.dv-editable.edit-all>div{position:relative;padding:6px 4px 6px 34px;border-bottom:1px solid var(--border);counter-increment:para;}
 .dv-editable.edit-all>div:last-child{border-bottom:none;}
-.dv-editable.edit-all>div::before{content:"S" counter(para);position:absolute;left:0;top:6px;font-size:10px;font-weight:700;color:var(--muted);font-family:'Inter',sans-serif;user-select:none;pointer-events:none;}
-.dv-editable.edit-all>div.cur-read{background:rgba(255,200,0,.10);border-radius:8px;}
-/* Loop box: 1px rounded ring around the current paragraph; inset box-shadow → never shifts layout */
-.dv-section.loop-current{border-radius:8px;box-shadow:inset 0 0 0 1px var(--accent);}
-.section-pause-on .dv-section.loop-current{border-bottom-color:transparent;}
+.dv-editable.edit-all>div::before{content:"#" counter(para);position:absolute;left:2px;top:6px;font-size:11px;font-weight:700;color:var(--accent);font-family:'Inter',sans-serif;user-select:none;pointer-events:none;}
+/* Exact-word reading highlight inside the edit-all box (CSS Custom Highlight API → no DOM/caret disruption) */
+::highlight(reading){background-color:rgba(255,200,0,.75);}
+/* Looped section: yellow tint (no box) */
+.dv-section.loop-current{background:rgba(255,200,0,.13);}
 /* Selection formatting bubble */
 .fmt-bubble{position:fixed;z-index:300;display:flex;align-items:center;gap:5px;background:#0c0c0c;border:1px solid var(--border);border-radius:8px;padding:5px 7px;box-shadow:0 6px 20px rgba(0,0,0,.55);}
 .fmt-btn{background:var(--panel-2);color:var(--text);border:1px solid var(--border);border-radius:8px;min-width:26px;height:24px;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
@@ -801,6 +806,7 @@ function toggleEditAll(){
 // ── DIRECTOR VIEW ─────────────────────────────────────────
 let _dvPrevStart=-1, _dvLastRow=null, _sentClickTimer=null;
 function renderDirectorView(){
+  if(window.CSS&&CSS.highlights)CSS.highlights.delete('reading');   // clear edit-all highlight
   const scr=getActiveScript(),notes=getNotesFor(scr.id),secs=getParagraphs(scr.text);
   directorView.innerHTML='';
   if(!secs.length){
@@ -831,9 +837,12 @@ function renderDirectorView(){
         persistSession();div.classList.toggle('done',cb.checked);
         div.querySelectorAll('.dv-check').forEach(c=>c.checked=cb.checked);
       });
-      row.appendChild(cb);
-      // Section number label (under the checkbox), only on the section's first row
-      if(sentIdx===0){const sn=document.createElement('span');sn.className='dv-snum';sn.textContent='S'+(sIdx+1);row.appendChild(sn);}
+      // First row: #number + checkbox together in the gutter, aligned to the first line.
+      if(sentIdx===0){
+        const g=document.createElement('div');g.className='dv-gutter';
+        const num=document.createElement('span');num.className='dv-num';num.textContent='#'+(sIdx+1);
+        g.appendChild(num);g.appendChild(cb);row.appendChild(g);
+      }else{row.appendChild(cb);}
       // Sentence text
       const textEl=document.createElement('span');
       textEl.className='dv-sent-text';textEl.innerHTML=richHtml(sent.text,sent.offset,markList());
@@ -1342,10 +1351,31 @@ function updateLoopBox(){
   els.forEach((s,i)=>s.classList.toggle('loop-current',i===idx));
 }
 // In edit-all, tint the paragraph block currently being read on the prompter.
+// A Range over [ls,le] within one paragraph block (walks its text nodes).
+function rangeInBlock(block,ls,le){
+  const w=document.createTreeWalker(block,NodeFilter.SHOW_TEXT,null);
+  let n,acc=0,sN=null,sO=0,eN=null,eO=0;
+  while((n=w.nextNode())){const len=n.nodeValue.length;
+    if(sN===null&&ls<acc+len+1){sN=n;sO=Math.max(0,ls-acc);}
+    if(le<=acc+len){eN=n;eO=le-acc;break;}
+    acc+=len;}
+  if(!sN)return null;if(!eN){eN=sN;eO=sN.nodeValue.length;}
+  try{const r=document.createRange();r.setStart(sN,Math.min(sO,sN.nodeValue.length));r.setEnd(eN,Math.min(Math.max(0,eO),eN.nodeValue.length));return r;}catch(e){return null;}
+}
+// Exact-word reading highlight in the edit-all box, via the CSS Custom Highlight API
+// (no DOM edits → doesn't disturb the caret or serialize into the text).
 function updateEditAllHighlight(){
+  if(!window.CSS||!CSS.highlights||typeof Highlight==='undefined')return;
+  CSS.highlights.delete('reading');
   const ed=directorView.querySelector('.dv-editable.edit-all');if(!ed)return;
-  const r=getHighlightRange(),idx=sectionIndexAt((r.startChar+r.endChar)/2);
-  Array.from(ed.children).forEach((b,i)=>b.classList.toggle('cur-read',i===idx));
+  const {startChar,endChar}=getHighlightRange();if(endChar<=startChar)return;
+  const secs=getParagraphs(state.text),blocks=ed.children,ranges=[];
+  for(let i=0;i<secs.length&&i<blocks.length;i++){
+    const s=secs[i].offset,e=s+secs[i].text.length,a=Math.max(startChar,s),b=Math.min(endChar,e);
+    if(b<=a)continue;
+    const r=rangeInBlock(blocks[i],a-s,b-s);if(r)ranges.push(r);
+  }
+  if(ranges.length)CSS.highlights.set('reading',new Highlight(...ranges));
 }
 mirrorHBtn.onclick=()=>sendUpdate('mirroredH',!state.mirroredH);
 mirrorVBtn.onclick=()=>sendUpdate('mirroredV',!state.mirroredV);
@@ -1605,6 +1635,6 @@ setInterval(()=>{
   }
 },2000);
 </script>
-<div style="position:fixed;bottom:6px;right:8px;font-size:10px;color:rgba(255,255,255,0.25);font-family:'Inter',sans-serif;pointer-events:none;z-index:9999;letter-spacing:.04em;">v2.0·p7</div>
+<div style="position:fixed;bottom:6px;right:8px;font-size:10px;color:rgba(255,255,255,0.25);font-family:'Inter',sans-serif;pointer-events:none;z-index:9999;letter-spacing:.04em;">v2.0·p8</div>
 </body>
 </html>
