@@ -241,11 +241,7 @@
                        window.matchMedia('(display-mode: fullscreen)').matches ||
                        window.matchMedia('(display-mode: standalone)').matches;
 
-  if (isIOS && !isStandalone) {
-    // Show Add to Home Screen prompt if not already in standalone mode
-    const dismissed = localStorage.getItem('tp_ios_prompt_dismissed');
-    if (!dismissed) iosPrompt.classList.remove('hidden');
-  }
+  // (Add-to-Home-Screen prompt removed per request — never shown.)
   dismissIosPrompt.onclick = () => {
     iosPrompt.classList.add('hidden');
     localStorage.setItem('tp_ios_prompt_dismissed', '1');
@@ -300,8 +296,8 @@
 
   // ---- State ----
   let state = {
-    text: '', fontSize: 48, fontFamily: 'opensans',
-    wpm: 130, marginL: 6, marginR: 6, lineHeight: 1.5, mirroredH: false, mirroredV: false, playState: 'paused',
+    text: '', fontSize: 96, fontFamily: 'verdana',
+    wpm: 140, marginL: 0, marginR: 0, lineHeight: 1.3, mirroredH: false, mirroredV: false, playState: 'paused',
     // 2.0: inline formatting marks {s,e,t,v} — t='u' underline, 'c' color.
     marks: []
   };
@@ -919,6 +915,6 @@
     if (document.visibilityState === 'visible') requestWakeLock();
   });
 </script>
-<div style="position:fixed;bottom:6px;right:8px;font-size:10px;color:rgba(255,255,255,0.25);font-family:'Inter',sans-serif;pointer-events:none;z-index:9999;letter-spacing:.04em;">v2.0·p4</div>
+<div style="position:fixed;bottom:6px;right:8px;font-size:10px;color:rgba(255,255,255,0.25);font-family:'Inter',sans-serif;pointer-events:none;z-index:9999;letter-spacing:.04em;">v2.0·p5</div>
 </body>
 </html>
