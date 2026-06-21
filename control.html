@@ -24,16 +24,16 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Inter'
 .open-title{font-family:'EB Garamond',Garamond,serif;font-size:42px;font-weight:700;color:var(--text);text-align:center;line-height:1.1;letter-spacing:-.01em;}
 .open-subtitle{font-size:13px;color:var(--muted);text-align:center;margin-top:2px;margin-bottom:6px;}
 .open-actions{display:flex;gap:12px;}
-.open-btn{padding:12px 28px;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;border:none;}
+.open-btn{padding:12px 28px;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;border:none;}
 .open-btn.primary{background:var(--accent);color:#000;}
 .open-btn.secondary{background:var(--panel-2);color:var(--text);border:1px solid var(--border);}
 /* Combined QR + code box */
-#codeBox{border:2px solid var(--accent);border-radius:14px;padding:20px 24px;background:var(--panel);display:flex;flex-direction:column;align-items:center;gap:14px;transition:opacity .35s,visibility .35s;}
+#codeBox{border:2px solid var(--accent);border-radius:8px;padding:20px 24px;background:var(--panel);display:flex;flex-direction:column;align-items:center;gap:14px;transition:opacity .35s,visibility .35s;}
 #codeBox.faded{opacity:0;visibility:hidden;pointer-events:none;}
-#codeBox canvas,#codeBox img{border-radius:6px;display:block;}
+#codeBox canvas,#codeBox img{border-radius:8px;display:block;}
 #hostCode{font-family:'Inter',sans-serif;font-size:40px;font-weight:700;letter-spacing:.2em;color:var(--accent);}
 /* Connection indicator */
-#connIndicator{display:flex;align-items:center;gap:10px;padding:12px 22px;border-radius:10px;border:2px solid;font-size:14px;font-weight:600;min-width:220px;justify-content:center;}
+#connIndicator{display:flex;align-items:center;gap:10px;padding:12px 22px;border-radius:8px;border:2px solid;font-size:14px;font-weight:600;min-width:220px;justify-content:center;}
 #connIndicator.conn-waiting{border-color:var(--accent);color:var(--accent);}
 #connIndicator.conn-connected{border-color:#22c55e;color:#22c55e;}
 #connIndicator.conn-error{border-color:#e55;color:#e55;}
@@ -41,7 +41,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Inter'
 
 /* ── QR MODAL ── */
 #qrModal{display:none;position:fixed;inset:0;z-index:99;background:rgba(0,0,0,.82);align-items:center;justify-content:center;}
-.qr-inner{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:28px 24px;text-align:center;display:flex;flex-direction:column;gap:14px;min-width:260px;}
+.qr-inner{background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:28px 24px;text-align:center;display:flex;flex-direction:column;gap:14px;min-width:260px;}
 .qr-title{font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:600;}
 #qrModalCode{font-family:"SF Mono","Courier New",monospace;font-size:40px;letter-spacing:.2em;color:var(--accent);border:2px solid var(--accent);border-radius:8px;padding:12px 18px;}
 #qrModalCanvas img,#qrModalCanvas canvas{display:block;margin:0 auto;}
@@ -52,7 +52,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Inter'
 #reconnectBanner.visible{display:flex;}
 #reconnectBanner span{font-size:13px;color:var(--muted);}
 .code-inline{font-family:'Inter',sans-serif;font-variant-numeric:tabular-nums;font-weight:700;color:var(--accent);font-size:14px;letter-spacing:.08em;}
-#dismissBanner{background:none;border:1px solid var(--border);color:var(--text);padding:4px 10px;border-radius:5px;font-size:12px;cursor:pointer;margin-left:auto;}
+#dismissBanner{background:none;border:1px solid var(--border);color:var(--text);padding:4px 10px;border-radius:8px;font-size:12px;cursor:pointer;margin-left:auto;}
 
 /* ── TAB BAR ── */
 #tabBar{display:none;height:36px;background:var(--panel);border-bottom:1px solid var(--border);align-items:stretch;overflow-x:auto;scrollbar-width:none;flex-shrink:0;}
@@ -68,9 +68,9 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Inter'
 #addTabBtn{padding:0 14px;color:var(--muted);font-size:18px;cursor:pointer;background:none;border:none;flex-shrink:0;border-right:1px solid var(--border);}
 #addTabBtn:hover{color:var(--accent);}
 .tab-session-area{display:flex;align-items:center;gap:6px;margin-left:auto;padding:0 10px;border-left:1px solid var(--border);}
-.tab-session-btn{background:var(--panel-2);color:var(--text);border:1px solid var(--border);height:26px;padding:0 12px;border-radius:5px;font-size:12px;cursor:pointer;white-space:nowrap;}
+.tab-session-btn{background:var(--panel-2);color:var(--text);border:1px solid var(--border);height:26px;padding:0 12px;border-radius:8px;font-size:12px;cursor:pointer;white-space:nowrap;}
 .tab-session-btn:hover{border-color:var(--accent);color:var(--accent);}
-.tab-rename-input{background:var(--panel);border:1px solid var(--accent);color:var(--text);font-size:13px;padding:1px 6px;border-radius:4px;outline:none;width:120px;}
+.tab-rename-input{background:var(--panel);border:1px solid var(--accent);color:var(--text);font-size:13px;padding:1px 6px;border-radius:8px;outline:none;width:120px;}
 #fileInput{display:none;}
 
 /* ── MAIN PANEL ── */
@@ -85,7 +85,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Inter'
 #toolbar{display:flex;align-items:center;gap:4px;padding:5px 10px;border-bottom:1px solid var(--border);flex-shrink:0;}
 .tb-right{margin-left:auto;display:flex;gap:4px;align-items:center;}
 #saveStatus{font-size:11px;color:var(--muted);margin-left:8px;white-space:nowrap;}
-.tb-btn{background:var(--panel-2);color:var(--text);border:1px solid var(--border);border-radius:6px;height:28px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:12px;padding:0 10px;white-space:nowrap;}
+.tb-btn{background:var(--panel-2);color:var(--text);border:1px solid var(--border);border-radius:8px;height:28px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:12px;padding:0 10px;white-space:nowrap;}
 .tb-btn.icon{width:28px;padding:0;}
 .tb-btn.icon svg{width:13px;height:13px;}
 .tb-btn:hover{border-color:var(--accent);color:var(--accent);}
@@ -104,7 +104,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Inter'
 #textArea:focus{border-color:var(--accent);}
 .highlight-span{background:rgba(255,200,0,.75);border-radius:2px;}
 #scrubberTrack{width:14px;background:var(--panel);border-left:1px solid var(--border);position:relative;flex-shrink:0;cursor:pointer;}
-#scrubberThumb{position:absolute;left:2px;right:2px;min-height:24px;background:var(--accent);border-radius:5px;opacity:.85;cursor:grab;}
+#scrubberThumb{position:absolute;left:2px;right:2px;min-height:24px;background:var(--accent);border-radius:8px;opacity:.85;cursor:grab;}
 #scrubberThumb:active{cursor:grabbing;opacity:1;}
 
 /* ── DIRECTOR VIEW ── */
@@ -116,7 +116,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Inter'
 .dv-sentence-row{
   display:grid;grid-template-columns:22px 1fr;
   padding:3px 60px 3px 4px;/* right padding reserves space for abs button */
-  border-radius:5px;position:relative;
+  border-radius:8px;position:relative;
 }
 .dv-sentence-row:hover{background:var(--panel-2);}
 .dv-check{
@@ -134,6 +134,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Inter'
   transform:rotate(45deg);
 }
 .section-first .dv-check{visibility:visible;}
+.dv-snum{grid-column:1;font-size:9px;font-weight:700;color:var(--muted);text-align:center;line-height:1;margin-top:3px;user-select:none;}
 .dv-sent-text{font-size:14px;line-height:1.6;color:var(--text);cursor:pointer;display:block;grid-column:2;}
 .dv-hl{background:rgba(255,200,0,.75);border-radius:2px;color:inherit;}
 .dv-section.done .dv-sent-text{color:var(--muted);text-decoration:line-through;}
@@ -184,18 +185,20 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Inter'
 /* Inline editor */
 .dv-empty{color:var(--muted);font-size:14px;padding:24px;text-align:center;cursor:text;border:1px dashed var(--border);border-radius:8px;margin:8px;}
 .dv-empty:hover{border-color:var(--accent);color:var(--text);}
-.dv-editable{font-size:14px;line-height:1.6;color:var(--text);padding:6px 8px;outline:none;white-space:pre-wrap;word-wrap:break-word;min-height:1.6em;border-radius:6px;box-shadow:inset 0 0 0 1px var(--accent);background:rgba(255,200,0,.04);}
+.dv-editable{font-size:14px;line-height:1.6;color:var(--text);padding:6px 8px;outline:none;white-space:pre-wrap;word-wrap:break-word;min-height:1.6em;border-radius:8px;box-shadow:inset 0 0 0 1px var(--accent);background:rgba(255,200,0,.04);}
 .dv-editable u{text-decoration:underline;}
-.dv-editable.edit-all{min-height:70vh;box-shadow:none;background:none;padding:0 4px 40vh;}
-/* Paragraphs in the edit-all box: same spacing + dividers as Direct mode sections */
-.dv-editable.edit-all>div{padding:6px 4px;border-bottom:1px solid var(--border);}
+.dv-editable.edit-all{min-height:70vh;box-shadow:none;background:none;padding:0 4px 40vh;counter-reset:para;}
+/* Paragraphs in the edit-all box: same spacing + dividers as Direct mode, with S-numbers */
+.dv-editable.edit-all>div{position:relative;padding:6px 4px 6px 30px;border-bottom:1px solid var(--border);counter-increment:para;}
 .dv-editable.edit-all>div:last-child{border-bottom:none;}
-/* Loop box: rounded ring around the current paragraph; box-shadow → never shifts layout */
-.dv-section.loop-current{border-radius:8px;box-shadow:0 0 0 2px var(--accent);}
+.dv-editable.edit-all>div::before{content:"S" counter(para);position:absolute;left:0;top:6px;font-size:10px;font-weight:700;color:var(--muted);font-family:'Inter',sans-serif;user-select:none;pointer-events:none;}
+.dv-editable.edit-all>div.cur-read{background:rgba(255,200,0,.10);border-radius:8px;}
+/* Loop box: 1px rounded ring around the current paragraph; inset box-shadow → never shifts layout */
+.dv-section.loop-current{border-radius:8px;box-shadow:inset 0 0 0 1px var(--accent);}
 .section-pause-on .dv-section.loop-current{border-bottom-color:transparent;}
 /* Selection formatting bubble */
 .fmt-bubble{position:fixed;z-index:300;display:flex;align-items:center;gap:5px;background:#0c0c0c;border:1px solid var(--border);border-radius:8px;padding:5px 7px;box-shadow:0 6px 20px rgba(0,0,0,.55);}
-.fmt-btn{background:var(--panel-2);color:var(--text);border:1px solid var(--border);border-radius:5px;min-width:26px;height:24px;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+.fmt-btn{background:var(--panel-2);color:var(--text);border:1px solid var(--border);border-radius:8px;min-width:26px;height:24px;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
 .fmt-btn:hover{border-color:var(--accent);color:var(--accent);}
 .fmt-swatch{width:18px;height:18px;border-radius:50%;border:1px solid rgba(255,255,255,.35);cursor:pointer;padding:0;transition:transform .1s;}
 .fmt-swatch:hover{transform:scale(1.15);border-color:#fff;}
@@ -203,12 +206,12 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Inter'
 /* Existing comment and input: span full width below sentence, in grid col 2 */
 .dv-existing-comment{
   grid-column:2;font-size:12px;color:var(--muted);background:var(--panel-2);
-  border-radius:5px;padding:5px 9px;margin-top:3px;border-left:2px solid var(--accent);
+  border-radius:8px;padding:5px 9px;margin-top:3px;border-left:2px solid var(--accent);
   line-height:1.4;cursor:pointer;
 }
 .dv-comment-input{
   grid-column:2;width:100%;font-size:12px;color:var(--text);background:var(--panel-2);
-  border:1px solid var(--accent);border-radius:5px;padding:5px 9px;
+  border:1px solid var(--accent);border-radius:8px;padding:5px 9px;
   resize:none;outline:none;font-family:inherit;line-height:1.5;margin-top:3px;
 }
 
@@ -222,14 +225,14 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Inter'
 .btn{background:var(--panel-2);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:9px 14px;font-size:14px;cursor:pointer;flex:1;display:flex;align-items:center;justify-content:center;}
 .btn.active{border-color:var(--accent);color:var(--accent);}
 .btn-row{display:flex;gap:8px;align-items:stretch;}
-.icon-btn{flex:0 0 42px;width:42px;height:42px;padding:0;border-radius:12px;}
+.icon-btn{flex:0 0 42px;width:42px;height:42px;padding:0;border-radius:8px;}
 .icon-btn svg{width:20px;height:20px;}
 .slider-row{display:flex;flex-direction:column;gap:5px;}
 .ctrl-row{display:flex;align-items:center;justify-content:space-between;gap:10px;}
 .val{font-size:13px;color:var(--accent);font-family:"SF Mono","Courier New",monospace;}
 .slider-btns{display:flex;align-items:center;gap:6px;}
 .slider-btns input{flex:1;accent-color:var(--accent);}
-.step-btn{background:var(--panel-2);color:var(--text);border:1px solid var(--border);border-radius:6px;width:30px;height:30px;font-size:17px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;user-select:none;}
+.step-btn{background:var(--panel-2);color:var(--text);border:1px solid var(--border);border-radius:8px;width:30px;height:30px;font-size:17px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;user-select:none;}
 .step-btn:active{border-color:var(--accent);color:var(--accent);}
 .margin-dual{position:relative;height:28px;margin-top:2px;touch-action:none;}
 .md-track{position:absolute;top:50%;left:0;right:0;height:6px;transform:translateY(-50%);background:var(--panel-2);border:1px solid var(--border);border-radius:3px;}
@@ -247,13 +250,13 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Inter'
 .select-input:focus{border-color:var(--accent);}
 #statusBar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
 #sideStatus{font-size:11px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);font-weight:600;}
-#persistentCode{font-family:'Inter',sans-serif;font-variant-numeric:tabular-nums;font-size:18px;font-weight:600;color:var(--accent);border:1px solid var(--border);border-radius:6px;padding:5px 12px;letter-spacing:.08em;cursor:pointer;transition:border-color .15s;}
+#persistentCode{font-family:'Inter',sans-serif;font-variant-numeric:tabular-nums;font-size:18px;font-weight:600;color:var(--accent);border:1px solid var(--border);border-radius:8px;padding:5px 12px;letter-spacing:.08em;cursor:pointer;transition:border-color .15s;}
 #persistentCode:hover{border-color:var(--accent);}
 
 /* ── INLINE RESTORE NOTICE ── */
-#restoreNotice{display:none;align-items:center;gap:6px;font-size:11px;color:var(--text);background:var(--panel-2);border:1px solid var(--accent);border-radius:6px;padding:3px 8px;white-space:nowrap;}
+#restoreNotice{display:none;align-items:center;gap:6px;font-size:11px;color:var(--text);background:var(--panel-2);border:1px solid var(--accent);border-radius:8px;padding:3px 8px;white-space:nowrap;}
 #restoreNotice.visible{display:flex;}
-.rn-btn{background:var(--accent);color:#000;border:none;padding:3px 8px;border-radius:4px;font-size:11px;font-weight:700;cursor:pointer;}
+.rn-btn{background:var(--accent);color:#000;border:none;padding:3px 8px;border-radius:8px;font-size:11px;font-weight:700;cursor:pointer;}
 .rn-dismiss{background:none;border:none;color:var(--muted);font-size:14px;cursor:pointer;line-height:1;padding:0 2px;}
 #autosaveStatus{font-size:11px;color:var(--muted);}
 </style>
@@ -282,7 +285,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Inter'
 
 <!-- ── DELETE CONFIRM MODAL ── -->
 <div id="deleteModal" style="display:none;position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.7);align-items:center;justify-content:center;">
-  <div style="background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:28px 24px;width:320px;display:flex;flex-direction:column;gap:16px;">
+  <div style="background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:28px 24px;width:320px;display:flex;flex-direction:column;gap:16px;">
     <div style="font-size:15px;font-weight:600;color:var(--text);">Delete script</div>
     <div id="deleteModalMsg" style="font-size:13px;color:var(--muted);"></div>
     <div style="display:flex;gap:10px;justify-content:flex-end;">
@@ -294,7 +297,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Inter'
 
 <!-- ── SAVE SESSION MODAL ── -->
 <div id="saveModal" style="display:none;position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.7);align-items:center;justify-content:center;">
-  <div style="background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:28px 24px;width:340px;display:flex;flex-direction:column;gap:16px;">
+  <div style="background:var(--panel);border:1px solid var(--border);border-radius:8px;padding:28px 24px;width:340px;display:flex;flex-direction:column;gap:16px;">
     <div style="font-size:15px;font-weight:600;color:var(--text);">Save session as</div>
     <input id="saveModalInput" type="text" placeholder="session name"
       style="background:#000;border:2px solid var(--border);color:var(--text);border-radius:8px;padding:11px 14px;font-size:15px;font-family:'Inter',sans-serif;outline:none;width:100%;">
@@ -450,27 +453,28 @@ const FONTS={
   mono:{label:'Monospace',stack:"'Courier New',monospace"}
 };
 const SESSION_KEY='tp_session', AUTOSAVE_KEY='tp_autosave';
-const TUTORIAL=`Welcome to Teleprompter Control.
+const TUTORIAL=`Welcome to your teleprompter.
 
-This is Script 1 — rename it by clicking ✎ in the tab above. Add more scripts with the + button.
+Open prompter.html on your phone and type the 6-digit pairing code shown in the bottom-right of this page. Click that code any time to show a QR code for quick pairing.
 
-GETTING STARTED
-Open prompter.html on your phone and enter the pairing code shown in the bottom-right corner to link the two. Click the code to reveal a QR code for quick pairing.
+This script view is the main workspace. Your text is shown as sentences on their own lines, grouped into numbered sections (S1, S2 …) separated by dividers. Click any sentence to jump the prompter there. The yellow highlight follows what is currently on the phone screen.
 
-EDITOR MODE
-Type your script here. It syncs live to the phone as you type. The yellow highlight shows exactly which words are currently visible on the phone screen. Use the scrubber bar on the right or scroll over the editor with the mouse wheel to navigate.
+To edit, double-click any paragraph — it becomes editable right where it sits, without anything jumping around. Select some text and a small bar pops up to Underline or set a Colour. Press Esc to cancel, or click away (or Ctrl+Enter) to save. A blank line starts a new section.
 
-DIRECTOR MODE
-See your script as individual sentences. Click any sentence to jump the prompter there. The yellow highlight tracks what is visible. Hover a sentence to reveal + Add note on the right. Notes are saved with the session and included in exports. Check the box next to a section's first sentence to mark it as done.
+To rewrite or paste in a whole script at once, click the pencil (✎) in the toolbar. The ↶ and ↷ buttons next to it undo and redo your edits (Ctrl+Z / Ctrl+Shift+Z also work).
 
-CONTROLS (right panel)
-Play / Pause, Restart, Flip H / V. Font size, speed (in words per minute) and side-margin sliders. Speed adjusts in 1 WPM steps; the read-time estimate updates with it. Press Space to play/pause. Arrow keys jump between sentences when the script editor is not focused.
+The ⏸ button auto-pauses the scroll at the end of every section. With it on, the ↺ button loops the current section — it replays from the top of that section after each pause, and the section being looped is boxed so you can see exactly what will play. Loop stays remembered if you toggle pause off and back on.
 
-BLUETOOTH REMOTE (phone)
-Tap ⚙ on the prompter to customise shortcuts. Defaults: 1 or G = play/pause, F = speed up, V = speed down, hold arrows = continuous scroll, T = jump to top.
+Check the box beside a section's first line to mark it done. Hover a line and click + Add note to leave director's notes (saved with the session and included in exports).
+
+RIGHT PANEL
+Play / Restart / Flip H / V, and sliders for font, size, line spacing, side margins and speed (in words per minute, 1-WPM steps, with a live read-time estimate). On the keyboard: Space plays/pauses and the up/down arrows jump between sentences (these are off while you're editing text).
+
+BLUETOOTH REMOTE (on the phone)
+Hold Up / Down — scroll. Power/Back — smaller font. Menu — larger font. X — previous section. B — next section. A — speed down. Y — speed up.
 
 SESSIONS
-Save your full session (all scripts, notes, settings) as a .tpsession file and reload it on shoot day.`;
+Use Save session to store everything (all scripts, notes, settings) as a file, and Load session to bring it back on shoot day. Add more scripts with the + tab and rename them with the ✎ on the tab.`;
 
 // ── DOM REFS ──────────────────────────────────────────────
 const $ = id => document.getElementById(id);
@@ -783,7 +787,7 @@ function toggleEditAll(){
   if(secs.length){
     secs.forEach(sec=>{const p=document.createElement('div');p.className='ed-para';p.innerHTML=richHtml(sec.text,sec.offset,markList())||'<br>';ed.appendChild(p);});
   }else{ed.innerHTML='<div class="ed-para"><br></div>';}
-  directorView.appendChild(ed);ed.focus();placeCaretEnd(ed);
+  directorView.appendChild(ed);ed.focus();placeCaretEnd(ed);updateEditAllHighlight();
   let done=false;
   const commit=cancel=>{if(done)return;done=true;_editingAll=false;_editAllCommit=null;hideBubble();editAllBtn.classList.remove('dv-active');
     if(cancel){renderDirectorView();return;}
@@ -828,6 +832,8 @@ function renderDirectorView(){
         div.querySelectorAll('.dv-check').forEach(c=>c.checked=cb.checked);
       });
       row.appendChild(cb);
+      // Section number label (under the checkbox), only on the section's first row
+      if(sentIdx===0){const sn=document.createElement('span');sn.className='dv-snum';sn.textContent='S'+(sIdx+1);row.appendChild(sn);}
       // Sentence text
       const textEl=document.createElement('span');
       textEl.className='dv-sent-text';textEl.innerHTML=richHtml(sent.text,sent.offset,markList());
@@ -894,6 +900,7 @@ function openComment(rowEl,key,notes){
 
 function highlightDirector(){
   if(uiMode!=='director')return;
+  if(_editingAll){updateEditAllHighlight();return;}   // edit-all: tint the current paragraph block
   const{startChar,endChar}=getHighlightRange();
   let first=null;
   // Re-render sentence DOM only when range changes — not every 60fps previewTick frame
@@ -1318,13 +1325,27 @@ loopBtn.onclick=()=>{
   updateLoopBox();
   sendSectionBreaks();
 };
-// Box the current section while looping (so it's clear only that paragraph plays).
+// Which section index a global char offset falls in.
+function sectionIndexAt(off){
+  const secs=getParagraphs(state.text);
+  for(let i=0;i<secs.length;i++){const s=secs[i].offset,e=s+secs[i].text.length;if(off>=s&&off<=e)return i;if(off<s)return Math.max(0,i-1);}
+  return Math.max(0,secs.length-1);
+}
+// Box the current section while looping. Uses the MIDDLE of the visible range so a
+// couple of trailing lines from the previous section (still showing right after a
+// loop-back to the top) don't flip the box backward.
 function loopActive(){return sectionPauseMode&&loopMode;}
 function updateLoopBox(){
-  if(!loopActive()){directorView.querySelectorAll('.dv-section.loop-current').forEach(s=>s.classList.remove('loop-current'));return;}
-  const hl=directorView.querySelector('mark.dv-hl');
-  const cur=hl?hl.closest('.dv-section'):directorView.querySelector('.dv-section');
-  directorView.querySelectorAll('.dv-section').forEach(s=>s.classList.toggle('loop-current',s===cur));
+  const els=directorView.querySelectorAll('.dv-section');
+  if(!loopActive()||!els.length){els.forEach(s=>s.classList.remove('loop-current'));return;}
+  const r=getHighlightRange(),idx=sectionIndexAt((r.startChar+r.endChar)/2);
+  els.forEach((s,i)=>s.classList.toggle('loop-current',i===idx));
+}
+// In edit-all, tint the paragraph block currently being read on the prompter.
+function updateEditAllHighlight(){
+  const ed=directorView.querySelector('.dv-editable.edit-all');if(!ed)return;
+  const r=getHighlightRange(),idx=sectionIndexAt((r.startChar+r.endChar)/2);
+  Array.from(ed.children).forEach((b,i)=>b.classList.toggle('cur-read',i===idx));
 }
 mirrorHBtn.onclick=()=>sendUpdate('mirroredH',!state.mirroredH);
 mirrorVBtn.onclick=()=>sendUpdate('mirroredV',!state.mirroredV);
@@ -1584,6 +1605,6 @@ setInterval(()=>{
   }
 },2000);
 </script>
-<div style="position:fixed;bottom:6px;right:8px;font-size:10px;color:rgba(255,255,255,0.25);font-family:'Inter',sans-serif;pointer-events:none;z-index:9999;letter-spacing:.04em;">v2.0·p6</div>
+<div style="position:fixed;bottom:6px;right:8px;font-size:10px;color:rgba(255,255,255,0.25);font-family:'Inter',sans-serif;pointer-events:none;z-index:9999;letter-spacing:.04em;">v2.0·p7</div>
 </body>
 </html>
