@@ -180,16 +180,18 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Inter'
 
 /* 2.0: Direct is the only view — hide the legacy Edit/Direct + undo/redo toolbar buttons */
 #editorModeBtn,#directorModeBtn,#undoBtn,#redoBtn{display:none!important;}
-/* Inline section editor */
+/* Inline editor */
 .dv-empty{color:var(--muted);font-size:14px;padding:24px;text-align:center;cursor:text;border:1px dashed var(--border);border-radius:8px;margin:8px;}
 .dv-empty:hover{border-color:var(--accent);color:var(--text);}
-.dv-edit-wrap{border:1px solid var(--accent);border-radius:8px;margin:4px 2px;background:var(--panel-2);}
-.dv-edit-toolbar{display:flex;gap:6px;align-items:center;padding:5px 8px;border-bottom:1px solid var(--border);}
-.dv-edit-btn{background:var(--panel);color:var(--text);border:1px solid var(--border);border-radius:5px;min-width:28px;height:24px;padding:0 8px;font-size:12px;cursor:pointer;}
-.dv-edit-btn:hover{border-color:var(--accent);color:var(--accent);}
-.dv-edit-btn.done{margin-left:auto;background:var(--accent);color:#000;border-color:var(--accent);font-weight:700;}
-.dv-editable{font-size:14px;line-height:1.6;color:var(--text);padding:8px 10px;outline:none;white-space:pre-wrap;word-wrap:break-word;min-height:1.6em;}
+.dv-editable{font-size:14px;line-height:1.6;color:var(--text);padding:6px 8px;outline:none;white-space:pre-wrap;word-wrap:break-word;min-height:1.6em;border-radius:6px;box-shadow:inset 0 0 0 1px var(--accent);background:rgba(255,200,0,.04);}
 .dv-editable u{text-decoration:underline;}
+.dv-editable.edit-all{min-height:70vh;box-shadow:none;background:none;padding:4px 4px 40vh;}
+/* Selection formatting bubble */
+.fmt-bubble{position:fixed;z-index:300;display:flex;align-items:center;gap:5px;background:#0c0c0c;border:1px solid var(--border);border-radius:8px;padding:5px 7px;box-shadow:0 6px 20px rgba(0,0,0,.55);}
+.fmt-btn{background:var(--panel-2);color:var(--text);border:1px solid var(--border);border-radius:5px;min-width:26px;height:24px;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+.fmt-btn:hover{border-color:var(--accent);color:var(--accent);}
+.fmt-swatch{width:18px;height:18px;border-radius:50%;border:1px solid rgba(255,255,255,.35);cursor:pointer;padding:0;transition:transform .1s;}
+.fmt-swatch:hover{transform:scale(1.15);border-color:#fff;}
 
 /* Existing comment and input: span full width below sentence, in grid col 2 */
 .dv-existing-comment{
@@ -334,7 +336,6 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Inter'
     <div id="toolbar">
       <button class="tb-btn mode active" id="editorModeBtn">Edit</button>
       <button class="tb-btn mode" id="directorModeBtn">Direct</button>
-      <div class="tb-sep"></div>
       <button class="tb-btn icon" id="undoBtn" title="Undo">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7v6h6"/><path d="M3 13C5.5 7.5 12 5 17 8.5s6 10 2 14"/></svg>
       </button>
@@ -342,7 +343,7 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Inter'
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 7v6h-6"/><path d="M21 13C18.5 7.5 12 5 7 8.5S1 18.5 5 22.5"/></svg>
       </button>
       <div id="directorTools">
-        <div class="tb-sep"></div>
+        <button class="tb-btn dv-ctrl" id="editAllBtn" title="Edit / import the whole script">✎</button>
         <button class="tb-btn dv-ctrl" id="sectionPauseBtn" title="Auto-pause at end of each section">⏸</button>
         <button class="tb-btn dv-ctrl" id="loopBtn" title="Loop section (replay from section start after pause)" disabled>↺</button>
       </div>
@@ -522,7 +523,7 @@ let session=(()=>{try{const r=localStorage.getItem(SESSION_KEY);if(r){const s=JS
 
 // ── PROMPTER STATE ────────────────────────────────────────
 let state={text:'',fontSize:75,fontFamily:'opensans',wpm:130,marginL:6,marginR:6,lineHeight:1.5,mirroredH:false,mirroredV:false,playState:'paused'};
-function syncScript(){state.text=getActiveScript().text;state.underlines=underlineRanges();}
+function syncScript(){state.text=getActiveScript().text;state.marks=markList();}
 syncScript();
 
 // ── MODE ──────────────────────────────────────────────────
@@ -578,112 +579,173 @@ function jumpToSentence(idx){
   highlightLayer.scrollTop=textArea.scrollTop;
 }
 
-// ══ RICH TEXT 2.0 — underline marks as global [start,end] char ranges ══
-function getMarks(){const s=getActiveScript();if(!s.marks)s.marks=[];return s.marks;}
-function underlineRanges(){return getMarks().map(m=>[m[0],m[1]]);}
-
-// Build HTML for `text` (whose first char sits at global `base`), applying
-// underline ranges (global) and an optional highlight range (global).
-function richHtml(text,base,ranges,hiS,hiE){
+// ══ RICH TEXT 2.0 — typed marks {s,e,t,v}: t='u' underline | 'c' color (v=css color) ══
+const FMT_COLORS=['#ffffff','#ffc800','#ff6b6b','#5cc8ff','#84e88a'];
+function markList(){const s=getActiveScript();if(!s.marks)s.marks=[];return s.marks;}
+function mergeMarks(marks){
+  const groups={};
+  marks.forEach(m=>{const k=m.t+'|'+(m.v||'');(groups[k]=groups[k]||[]).push(m);});
+  const out=[];
+  Object.values(groups).forEach(g=>{g.sort((a,b)=>a.s-b.s);let cur=null;g.forEach(m=>{if(cur&&m.s<=cur.e)cur.e=Math.max(cur.e,m.e);else{cur={...m};out.push(cur);}});});
+  return out.sort((a,b)=>a.s-b.s);
+}
+// Build HTML for `text` (first char at global `base`), applying marks + optional highlight.
+function richHtml(text,base,marks,hiS,hiE){
   const n=text.length,bounds=new Set([0,n]);
   const add=(gs,ge)=>{const ls=Math.max(0,gs-base),le=Math.min(n,ge-base);if(le>ls){bounds.add(ls);bounds.add(le);}};
-  (ranges||[]).forEach(r=>add(r[0],r[1]));
+  (marks||[]).forEach(m=>add(m.s,m.e));
   if(hiS!=null&&hiE!=null&&hiE>hiS)add(hiS,hiE);
   const bs=[...bounds].sort((a,b)=>a-b);let html='';
   for(let i=0;i<bs.length-1;i++){
     const a=bs[i],b=bs[i+1];if(b<=a)continue;const ga=base+a;
-    const u=(ranges||[]).some(r=>r[0]<=ga&&r[1]>ga);
+    const act=(marks||[]).filter(m=>m.s<=ga&&m.e>ga);
+    const u=act.some(m=>m.t==='u');const col=act.filter(m=>m.t==='c').slice(-1)[0];
     const hi=hiS!=null&&hiE!=null&&hiS<=ga&&hiE>ga;
     let seg=escHtml(text.slice(a,b));
     if(u)seg='<u>'+seg+'</u>';
+    if(col)seg='<span style="color:'+col.v+'">'+seg+'</span>';
     if(hi)seg='<mark class="dv-hl">'+seg+'</mark>';
     html+=seg;
   }
   return html;
 }
-// Serialize a contenteditable section → {text, marks:[[localStart,localEnd]]}
+// Serialize a contenteditable → {text, marks:[{s,e,t,v}]} (offsets local to this editor)
 function serializeEditable(root){
   let text='';const marks=[];
-  (function walk(node,u){
+  (function walk(node,u,color){
     node.childNodes.forEach(ch=>{
       if(ch.nodeType===Node.TEXT_NODE){
-        if(u)marks.push([text.length,text.length+ch.nodeValue.length]);
+        const a=text.length,b=a+ch.nodeValue.length;
+        if(b>a){if(u)marks.push({s:a,e:b,t:'u'});if(color)marks.push({s:a,e:b,t:'c',v:color});}
         text+=ch.nodeValue;
       }else if(ch.nodeType===Node.ELEMENT_NODE){
         const tag=ch.tagName;
         if(tag==='BR'){text+='\n';return;}
-        const under=u||tag==='U'||/underline/.test(ch.style&&ch.style.textDecoration||'');
-        const before=text.length;walk(ch,under);
+        let nu=u||tag==='U'||/underline/.test((ch.style&&ch.style.textDecoration)||'');
+        let nc=color;
+        if(ch.style&&ch.style.color)nc=ch.style.color;
+        else if(ch.getAttribute&&ch.getAttribute('color'))nc=ch.getAttribute('color');
+        const before=text.length;walk(ch,nu,nc);
         if((tag==='DIV'||tag==='P')&&text.length>before&&!text.endsWith('\n'))text+='\n';
       }
     });
-  })(root,false);
-  marks.sort((a,b)=>a[0]-b[0]);
-  const merged=[];for(const m of marks){const last=merged[merged.length-1];if(last&&m[0]<=last[1])last[1]=Math.max(last[1],m[1]);else merged.push(m.slice());}
-  return{text:text.replace(/\n+$/,''),marks:merged};
+  })(root,false,null);
+  return{text:text.replace(/\n+$/,''),marks:mergeMarks(marks)};
 }
-// Apply an edited section back into the global script text + marks, then sync.
+// Apply an edited section back into the global script, shifting marks, then sync.
 function applyEditedSection(secStart,secEnd,res){
   const old=state.text;
   const newText=old.slice(0,secStart)+res.text+old.slice(secEnd);
   const delta=res.text.length-(secEnd-secStart);
   const keep=[];
-  underlineRanges().forEach(([s,e])=>{
-    if(e<=secStart)keep.push([s,e]);
-    else if(s>=secEnd)keep.push([s+delta,e+delta]);
+  markList().forEach(m=>{
+    if(m.e<=secStart)keep.push(m);
+    else if(m.s>=secEnd)keep.push({...m,s:m.s+delta,e:m.e+delta});
   });
-  res.marks.forEach(([s,e])=>keep.push([secStart+s,secStart+e]));
-  keep.sort((a,b)=>a[0]-b[0]);
-  getActiveScript().marks=keep;
+  res.marks.forEach(m=>keep.push({...m,s:secStart+m.s,e:secStart+m.e}));
+  getActiveScript().marks=mergeMarks(keep);
   const scr=getActiveScript();
   if(scr.markers)scr.markers=scr.markers.filter(o=>o<=secStart||o>=secEnd).map(o=>o>=secEnd?o+delta:o);
   applyTextChange(newText);
 }
 // Single funnel for a text change (keeps the hidden textarea buffer in sync).
 function applyTextChange(v){
-  textArea.value=v;getActiveScript().text=v;state.text=v;state.underlines=underlineRanges();
+  textArea.value=v;getActiveScript().text=v;state.text=v;state.marks=markList();
   sentenceStarts=buildSentenceStarts(v);
   renderPreview();renderDirectorView();autosave();updateReadTime();
   sendScriptText();sendSectionBreaks();sendSentenceMarkers();
 }
-function renderPreview(){previewText.innerHTML=richHtml(state.text,0,underlineRanges());}
-function sendScriptText(){sendUpdate('text',state.text);sendUpdate('underlines',underlineRanges());}
+function renderPreview(){previewText.innerHTML=richHtml(state.text,0,markList());}
+function sendScriptText(){sendUpdate('text',state.text);sendUpdate('marks',markList());}
 
-// ── INLINE SECTION EDITOR ─────────────────────────────────
+// ── SELECTION FORMATTING BUBBLE (Notion-style) ────────────
+let fmtBubble=null;
+function ensureBubble(){
+  if(fmtBubble)return fmtBubble;
+  fmtBubble=document.createElement('div');fmtBubble.className='fmt-bubble';fmtBubble.style.display='none';
+  const u=document.createElement('button');u.className='fmt-btn';u.innerHTML='<u>U</u>';u.title='Underline';
+  u.onmousedown=e=>e.preventDefault();u.onclick=()=>applyFmt('u');fmtBubble.appendChild(u);
+  FMT_COLORS.forEach(c=>{const sw=document.createElement('button');sw.className='fmt-swatch';sw.style.background=c;sw.title=c;
+    sw.onmousedown=e=>e.preventDefault();sw.onclick=()=>applyFmt('c',c);fmtBubble.appendChild(sw);});
+  document.body.appendChild(fmtBubble);
+  return fmtBubble;
+}
+function applyFmt(kind,val){
+  if(kind==='u'){document.execCommand('underline');}
+  else if(kind==='c'){try{document.execCommand('styleWithCSS',false,true);}catch(e){}document.execCommand('foreColor',false,val);}
+  setTimeout(positionBubble,0);
+}
+function positionBubble(){
+  if(!_editing&&!_editingAll){hideBubble();return;}
+  const sel=getSelection();
+  if(!sel||sel.rangeCount===0||sel.isCollapsed){hideBubble();return;}
+  const range=sel.getRangeAt(0);
+  let node=range.commonAncestorContainer;node=node.nodeType===1?node:node.parentElement;
+  if(!node||!node.closest('.dv-editable')){hideBubble();return;}
+  const rect=range.getBoundingClientRect();
+  if(!rect.width&&!rect.height){hideBubble();return;}
+  const b=ensureBubble();b.style.display='flex';
+  const bw=b.offsetWidth||170,bh=b.offsetHeight||30;
+  let top=rect.top-bh-8,left=rect.left+rect.width/2-bw/2;
+  if(top<4)top=rect.bottom+8;
+  left=Math.max(6,Math.min(left,window.innerWidth-bw-6));
+  b.style.top=top+'px';b.style.left=left+'px';
+}
+function hideBubble(){if(fmtBubble)fmtBubble.style.display='none';}
+document.addEventListener('selectionchange',()=>{if(_editing||_editingAll)positionBubble();});
+
+function placeCaretEnd(el){const r=document.createRange();r.selectNodeContents(el);r.collapse(false);const s=getSelection();s.removeAllRanges();s.addRange(r);}
+function wireEditor(ed,commit){
+  ed.addEventListener('paste',e=>{e.preventDefault();const t=(e.clipboardData||window.clipboardData).getData('text/plain');document.execCommand('insertText',false,t);});
+  ed.addEventListener('keydown',e=>{
+    if(e.key==='Escape'){e.preventDefault();commit(true);}
+    else if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='u'){e.preventDefault();applyFmt('u');}
+    else if((e.ctrlKey||e.metaKey)&&e.key==='Enter'){e.preventDefault();commit(false);}
+  });
+  ed.addEventListener('mouseup',()=>setTimeout(positionBubble,0));
+  ed.addEventListener('keyup',()=>setTimeout(positionBubble,0));
+  ed.addEventListener('blur',()=>setTimeout(()=>{
+    if(document.activeElement!==ed && !(fmtBubble&&fmtBubble.contains(document.activeElement))) commit(false);
+  },150));
+}
+
+// ── INLINE SECTION EDITOR (no layout shift) ───────────────
 let _editing=null;
 function editSection(sectionEl,sec){
-  if(_editing)return;
+  if(_editing||_editingAll)return;
   const secStart=sec.offset,secEnd=sec.offset+sec.text.length;
   _editing={secStart,secEnd};
-  try{document.execCommand('styleWithCSS',false,false);}catch(e){}
-  const wrap=document.createElement('div');wrap.className='dv-edit-wrap';
-  const tb=document.createElement('div');tb.className='dv-edit-toolbar';
-  const uBtn=document.createElement('button');uBtn.className='dv-edit-btn';uBtn.innerHTML='<u>U</u>';uBtn.title='Underline (Ctrl/Cmd+U)';
-  const doneBtn=document.createElement('button');doneBtn.className='dv-edit-btn done';doneBtn.textContent='Done';
-  tb.appendChild(uBtn);tb.appendChild(doneBtn);
-  const ed=document.createElement('div');ed.className='dv-editable';ed.contentEditable='true';ed.spellcheck=false;
-  ed.innerHTML=richHtml(sec.text,sec.offset,underlineRanges())||'<br>';
-  wrap.appendChild(tb);wrap.appendChild(ed);
-  sectionEl.replaceWith(wrap);
-  ed.focus();
-  const r=document.createRange();r.selectNodeContents(ed);r.collapse(false);
-  const sel=getSelection();sel.removeAllRanges();sel.addRange(r);
-  const underline=()=>{document.execCommand('underline');ed.focus();};
-  uBtn.onmousedown=e=>e.preventDefault();uBtn.onclick=underline;
-  doneBtn.onmousedown=e=>e.preventDefault();
-  ed.addEventListener('paste',e=>{e.preventDefault();const t=(e.clipboardData||window.clipboardData).getData('text/plain');document.execCommand('insertText',false,t);});
+  const h=sectionEl.offsetHeight;                       // reserve height → sections below don't move
+  const ed=document.createElement('div');ed.className='dv-editable section-edit';ed.contentEditable='true';ed.spellcheck=false;
+  if(h)ed.style.minHeight=h+'px';
+  ed.innerHTML=richHtml(sec.text,sec.offset,markList())||'<br>';
+  sectionEl.replaceWith(ed);ed.focus();placeCaretEnd(ed);
   let done=false;
-  const commit=cancel=>{if(done)return;done=true;_editing=null;
+  const commit=cancel=>{if(done)return;done=true;_editing=null;hideBubble();
     if(cancel){renderDirectorView();return;}
     applyEditedSection(secStart,secEnd,serializeEditable(ed));
   };
-  doneBtn.onclick=()=>commit(false);
-  ed.addEventListener('keydown',e=>{
-    if(e.key==='Escape'){e.preventDefault();commit(true);}
-    else if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='u'){e.preventDefault();underline();}
-    else if((e.ctrlKey||e.metaKey)&&e.key==='Enter'){e.preventDefault();commit(false);}
-  });
-  ed.addEventListener('blur',()=>setTimeout(()=>{if(!done&&document.activeElement!==ed)commit(false);},120));
+  wireEditor(ed,commit);
+}
+
+// ── EDIT-ALL / IMPORT (whole script in one editor) ────────
+let _editingAll=false,_editAllCommit=null;
+function toggleEditAll(){
+  if(_editingAll){if(_editAllCommit)_editAllCommit(false);return;}
+  if(_editing)return;
+  _editingAll=true;editAllBtn.classList.add('dv-active');
+  directorView.innerHTML='';
+  const ed=document.createElement('div');ed.className='dv-editable edit-all';ed.contentEditable='true';ed.spellcheck=false;
+  ed.innerHTML=state.text.trim()?richHtml(state.text,0,markList()):'<br>';
+  directorView.appendChild(ed);ed.focus();placeCaretEnd(ed);
+  let done=false;
+  const commit=cancel=>{if(done)return;done=true;_editingAll=false;_editAllCommit=null;hideBubble();editAllBtn.classList.remove('dv-active');
+    if(cancel){renderDirectorView();return;}
+    const res=serializeEditable(ed);
+    getActiveScript().marks=mergeMarks(res.marks);   // whole-doc: offsets already global
+    applyTextChange(res.text);
+  };
+  _editAllCommit=commit;wireEditor(ed,commit);
 }
 
 // ── DIRECTOR VIEW ─────────────────────────────────────────
@@ -722,7 +784,7 @@ function renderDirectorView(){
       row.appendChild(cb);
       // Sentence text
       const textEl=document.createElement('span');
-      textEl.className='dv-sent-text';textEl.innerHTML=richHtml(sent.text,sent.offset,underlineRanges());
+      textEl.className='dv-sent-text';textEl.innerHTML=richHtml(sent.text,sent.offset,markList());
       textEl.onclick=e=>{
         if(e.detail>1)return; // ignore the click half of a double-click (which opens edit)
         const pct=lineSeekPct(sent.offset);
@@ -795,7 +857,7 @@ function highlightDirector(){
       const s=parseInt(row.dataset.start),e=parseInt(row.dataset.end),raw=row.dataset.raw||'';
       const textEl=row.querySelector('.dv-sent-text');
       const overlaps=!(e<=startChar||s>=endChar);
-      textEl.innerHTML=overlaps?richHtml(raw,s,underlineRanges(),startChar,endChar):richHtml(raw,s,underlineRanges());
+      textEl.innerHTML=overlaps?richHtml(raw,s,markList(),startChar,endChar):richHtml(raw,s,markList());
       if(overlaps&&!first)first=row;
     });
   } else {
@@ -1190,7 +1252,8 @@ playBtn.onclick=()=>{
 };
 resetBtn.onclick=()=>{sendUpdate('reset',true);scrollPct=0;previewPos=0;previewBox.scrollTop=0;sentenceIdx=0;renderHighlight();updateScrubber();};
 // Director toolbar
-const sectionPauseBtn=$('sectionPauseBtn'),loopBtn=$('loopBtn'),directorToolsEl=$('directorTools');
+const sectionPauseBtn=$('sectionPauseBtn'),loopBtn=$('loopBtn'),directorToolsEl=$('directorTools'),editAllBtn=$('editAllBtn');
+editAllBtn.onclick=()=>toggleEditAll();
 sectionPauseBtn.onclick=()=>{
   sectionPauseMode=!sectionPauseMode;
   sectionPauseBtn.classList.toggle('dv-active',sectionPauseMode);
@@ -1462,6 +1525,6 @@ setInterval(()=>{
   }
 },2000);
 </script>
-<div style="position:fixed;bottom:6px;right:8px;font-size:10px;color:rgba(255,255,255,0.25);font-family:'Inter',sans-serif;pointer-events:none;z-index:9999;letter-spacing:.04em;">v2.0·p3</div>
+<div style="position:fixed;bottom:6px;right:8px;font-size:10px;color:rgba(255,255,255,0.25);font-family:'Inter',sans-serif;pointer-events:none;z-index:9999;letter-spacing:.04em;">v2.0·p4</div>
 </body>
 </html>

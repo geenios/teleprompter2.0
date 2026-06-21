@@ -302,8 +302,8 @@
   let state = {
     text: '', fontSize: 48, fontFamily: 'opensans',
     wpm: 130, marginL: 6, marginR: 6, lineHeight: 1.5, mirroredH: false, mirroredV: false, playState: 'paused',
-    // Phase 0 (2.0): inline formatting. Disjoint char ranges rendered as <u>.
-    underlines: []
+    // 2.0: inline formatting marks {s,e,t,v} — t='u' underline, 'c' color.
+    marks: []
   };
   let conn = null;
   let peer = null;
@@ -388,24 +388,28 @@
   // Formatting splits the script into MANY text nodes. Every position lookup
   // below walks those nodes, so the same character-offset model keeps working
   // whether the text is one plain node or interleaved with <u> spans.
+  // Typed marks {s,e,t,v}: t='u' underline | 'c' color (v=css color). Built as
+  // segmented spans so the text-node walker still maps every offset correctly.
   function renderContent() {
     const text = state.text;
-    const us = (state.underlines || [])
-      .map(u => [Math.max(0, Math.min(u[0], text.length)), Math.max(0, Math.min(u[1], text.length))])
-      .filter(([a, b]) => b > a)
-      .sort((a, b) => a[0] - b[0]);
-    if (!us.length) { textContent.textContent = text; return; }
+    const marks = (state.marks || [])
+      .map(m => ({ s: Math.max(0, Math.min(m.s, text.length)), e: Math.max(0, Math.min(m.e, text.length)), t: m.t, v: m.v }))
+      .filter(m => m.e > m.s);
+    if (!marks.length) { textContent.textContent = text; return; }
+    const bounds = new Set([0, text.length]);
+    marks.forEach(m => { bounds.add(m.s); bounds.add(m.e); });
+    const bs = [...bounds].sort((a, b) => a - b);
     textContent.textContent = '';
-    let i = 0;
-    for (const [a, b] of us) {
-      if (a < i) continue;                       // skip overlaps (prototype assumes disjoint)
-      if (a > i) textContent.appendChild(document.createTextNode(text.slice(i, a)));
-      const u = document.createElement('u');
-      u.textContent = text.slice(a, b);
-      textContent.appendChild(u);
-      i = b;
+    for (let i = 0; i < bs.length - 1; i++) {
+      const a = bs[i], b = bs[i + 1]; if (b <= a) continue;
+      const act = marks.filter(m => m.s <= a && m.e > a);
+      const u = act.some(m => m.t === 'u');
+      const col = act.filter(m => m.t === 'c').slice(-1)[0];
+      let node = document.createTextNode(text.slice(a, b));
+      if (u) { const el = document.createElement('u'); el.appendChild(node); node = el; }
+      if (col) { const el = document.createElement('span'); el.style.color = col.v; el.appendChild(node); node = el; }
+      textContent.appendChild(node);
     }
-    if (i < text.length) textContent.appendChild(document.createTextNode(text.slice(i)));
   }
 
   // The live concatenated text — equals state.text regardless of formatting.
@@ -647,7 +651,7 @@
     applyPct();
     requestAnimationFrame(() => {
       applyPct(); // re-apply once fonts/layout fully settle
-      if ('text' in partial || 'fontSize' in partial || 'fontFamily' in partial || 'marginL' in partial || 'marginR' in partial || 'lineHeight' in partial || 'underlines' in partial) {
+      if ('text' in partial || 'fontSize' in partial || 'fontFamily' in partial || 'marginL' in partial || 'marginR' in partial || 'lineHeight' in partial || 'marks' in partial) {
         computePxPerWord();
         computeSectionBreakYs();
         computeSentenceMarkerYs();
@@ -670,9 +674,9 @@
     const uStart = txt.indexOf('sentence'), uEnd = uStart + 'sentence'.length; // underline early word
     const probes = [0, 29, txt.indexOf('Sentence two'), txt.indexOf('Second'), txt.indexOf('It also'), txt.length - 4];
 
-    state.underlines = []; render();
+    state.marks = []; render();
     const refY = probes.map(getParaY);
-    state.underlines = [[uStart, uEnd]]; render();
+    state.marks = [{ s: uStart, e: uEnd, t: 'u' }]; render();
     const fmtY = probes.map(getParaY);
 
     const lines = []; let pass = true;
@@ -915,6 +919,6 @@
     if (document.visibilityState === 'visible') requestWakeLock();
   });
 </script>
-<div style="position:fixed;bottom:6px;right:8px;font-size:10px;color:rgba(255,255,255,0.25);font-family:'Inter',sans-serif;pointer-events:none;z-index:9999;letter-spacing:.04em;">v2.0·p3</div>
+<div style="position:fixed;bottom:6px;right:8px;font-size:10px;color:rgba(255,255,255,0.25);font-family:'Inter',sans-serif;pointer-events:none;z-index:9999;letter-spacing:.04em;">v2.0·p4</div>
 </body>
 </html>
