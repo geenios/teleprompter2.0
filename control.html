@@ -178,14 +178,21 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Inter'
 #readTimeEl{font-size:11px;color:var(--muted);}
 .speed-label{display:flex;align-items:baseline;gap:8px;min-width:0;}
 
-/* 2.0: Direct is the only view — hide the legacy Edit/Direct + undo/redo toolbar buttons */
-#editorModeBtn,#directorModeBtn,#undoBtn,#redoBtn{display:none!important;}
+/* 2.0: Direct is the only view — hide the legacy Edit/Direct tab buttons */
+#editorModeBtn,#directorModeBtn{display:none!important;}
+#undoBtn:disabled,#redoBtn:disabled{opacity:.3;cursor:default;}
 /* Inline editor */
 .dv-empty{color:var(--muted);font-size:14px;padding:24px;text-align:center;cursor:text;border:1px dashed var(--border);border-radius:8px;margin:8px;}
 .dv-empty:hover{border-color:var(--accent);color:var(--text);}
 .dv-editable{font-size:14px;line-height:1.6;color:var(--text);padding:6px 8px;outline:none;white-space:pre-wrap;word-wrap:break-word;min-height:1.6em;border-radius:6px;box-shadow:inset 0 0 0 1px var(--accent);background:rgba(255,200,0,.04);}
 .dv-editable u{text-decoration:underline;}
-.dv-editable.edit-all{min-height:70vh;box-shadow:none;background:none;padding:4px 4px 40vh;}
+.dv-editable.edit-all{min-height:70vh;box-shadow:none;background:none;padding:0 4px 40vh;}
+/* Paragraphs in the edit-all box: same spacing + dividers as Direct mode sections */
+.dv-editable.edit-all>div{padding:6px 4px;border-bottom:1px solid var(--border);}
+.dv-editable.edit-all>div:last-child{border-bottom:none;}
+/* Loop box: rounded ring around the current paragraph; box-shadow → never shifts layout */
+.dv-section.loop-current{border-radius:8px;box-shadow:0 0 0 2px var(--accent);}
+.section-pause-on .dv-section.loop-current{border-bottom-color:transparent;}
 /* Selection formatting bubble */
 .fmt-bubble{position:fixed;z-index:300;display:flex;align-items:center;gap:5px;background:#0c0c0c;border:1px solid var(--border);border-radius:8px;padding:5px 7px;box-shadow:0 6px 20px rgba(0,0,0,.55);}
 .fmt-btn{background:var(--panel-2);color:var(--text);border:1px solid var(--border);border-radius:5px;min-width:26px;height:24px;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
@@ -336,14 +343,14 @@ html,body{height:100%;background:var(--bg);color:var(--text);font-family:'Inter'
     <div id="toolbar">
       <button class="tb-btn mode active" id="editorModeBtn">Edit</button>
       <button class="tb-btn mode" id="directorModeBtn">Direct</button>
-      <button class="tb-btn icon" id="undoBtn" title="Undo">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7v6h6"/><path d="M3 13C5.5 7.5 12 5 17 8.5s6 10 2 14"/></svg>
-      </button>
-      <button class="tb-btn icon" id="redoBtn" title="Redo">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 7v6h-6"/><path d="M21 13C18.5 7.5 12 5 7 8.5S1 18.5 5 22.5"/></svg>
-      </button>
       <div id="directorTools">
         <button class="tb-btn dv-ctrl" id="editAllBtn" title="Edit / import the whole script">✎</button>
+        <button class="tb-btn icon dv-ctrl" id="undoBtn" title="Undo" disabled>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7v6h6"/><path d="M3 13C5.5 7.5 12 5 17 8.5s6 10 2 14"/></svg>
+        </button>
+        <button class="tb-btn icon dv-ctrl" id="redoBtn" title="Redo" disabled>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 7v6h-6"/><path d="M21 13C18.5 7.5 12 5 7 8.5S1 18.5 5 22.5"/></svg>
+        </button>
         <button class="tb-btn dv-ctrl" id="sectionPauseBtn" title="Auto-pause at end of each section">⏸</button>
         <button class="tb-btn dv-ctrl" id="loopBtn" title="Loop section (replay from section start after pause)" disabled>↺</button>
       </div>
@@ -531,8 +538,6 @@ let uiMode='editor';
 function setMode(m){
   uiMode=m;const dir=m==='director';
   if(directorToolsEl)directorToolsEl.style.display=dir?'flex':'none';
-  undoBtn.style.display=dir?'none':'';
-  redoBtn.style.display=dir?'none':'';
   editorModeBtn.classList.toggle('active',!dir);
   directorModeBtn.classList.toggle('active',dir);
   editorStack.style.display=dir?'none':'';
@@ -654,9 +659,19 @@ function applyTextChange(v){
   sentenceStarts=buildSentenceStarts(v);
   renderPreview();renderDirectorView();persistSession();autosave();updateReadTime();
   sendScriptText();sendSectionBreaks();sendSentenceMarkers();
+  histPush();
 }
 function renderPreview(){previewText.innerHTML=richHtml(state.text,0,markList());}
 function sendScriptText(){sendUpdate('text',state.text);sendUpdate('marks',markList());}
+
+// ── UNDO / REDO (per-script snapshot stack of {text, marks}) ──
+let _hist=[], _hi=-1, _histLock=false;
+function histSnap(){return{text:state.text,marks:JSON.parse(JSON.stringify(markList()))};}
+function histReset(){_hist=[histSnap()];_hi=0;updateUndoRedo();}
+function histPush(){if(_histLock)return;_hist=_hist.slice(0,_hi+1);_hist.push(histSnap());if(_hist.length>120)_hist.shift();_hi=_hist.length-1;updateUndoRedo();}
+function histGo(d){const ni=_hi+d;if(ni<0||ni>=_hist.length)return;_hi=ni;const s=_hist[_hi];
+  _histLock=true;getActiveScript().marks=JSON.parse(JSON.stringify(s.marks));applyTextChange(s.text);_histLock=false;updateUndoRedo();}
+function updateUndoRedo(){if(undoBtn)undoBtn.disabled=_hi<=0;if(redoBtn)redoBtn.disabled=_hi>=_hist.length-1;}
 
 // ── SELECTION FORMATTING BUBBLE (Notion-style) ────────────
 let fmtBubble=null;
@@ -695,16 +710,16 @@ function hideBubble(){if(fmtBubble)fmtBubble.style.display='none';}
 document.addEventListener('selectionchange',()=>{if(_editing||_editingAll)positionBubble();});
 
 function placeCaretEnd(el){const r=document.createRange();r.selectNodeContents(el);r.collapse(false);const s=getSelection();s.removeAllRanges();s.addRange(r);}
-function wireEditor(ed,commit){
+function wireEditor(ed,commit,blockEnter){
   ed.addEventListener('paste',e=>{e.preventDefault();const t=(e.clipboardData||window.clipboardData).getData('text/plain');document.execCommand('insertText',false,t);});
   ed.addEventListener('keydown',e=>{
     if(e.key==='Escape'){e.preventDefault();commit(true);}
     else if((e.ctrlKey||e.metaKey)&&e.key==='Enter'){e.preventDefault();commit(false);}
     else if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='u'){e.preventDefault();applyFmt('u');}
-    else if(e.key==='Enter'){
-      // Insert a plain newline ourselves so paragraph breaks (blank line = \n\n)
-      // are consistent and re-split into sections on commit, instead of relying
-      // on the browser's <div>/<br> behaviour which can drop a break.
+    else if(e.key==='Enter'&&!blockEnter){
+      // Single-section editor: insert a plain newline so blank line = \n\n splits
+      // into sections on commit (browser <div>/<br> can drop a break). In edit-all
+      // (blockEnter) we let the browser make a new paragraph block instead.
       e.preventDefault();document.execCommand('insertText',false,'\n');
     }
   });
@@ -734,24 +749,49 @@ function editSection(sectionEl,sec){
   wireEditor(ed,commit);
 }
 
-// ── EDIT-ALL / IMPORT (whole script in one editor) ────────
+// ── EDIT-ALL / IMPORT (whole script in one box, paragraphs as divided blocks) ──
 let _editingAll=false,_editAllCommit=null;
+// Each top-level block in the editor = one paragraph; joined with \n\n on commit.
+function serializeEditAll(root){
+  const units=[];let cur=null;
+  root.childNodes.forEach(n=>{
+    const isBlock=n.nodeType===1&&(n.tagName==='DIV'||n.tagName==='P');
+    if(isBlock){if(cur){units.push(cur);cur=null;}units.push(n);}
+    else{if(!cur)cur=document.createElement('div');cur.appendChild(n.cloneNode(true));}
+  });
+  if(cur)units.push(cur);
+  let text='';const marks=[];
+  units.forEach(u=>{
+    const r=serializeEditable(u);
+    if(!r.text.length)return;            // skip empty paragraphs
+    if(text.length)text+='\n\n';
+    const base=text.length;
+    r.marks.forEach(m=>marks.push({...m,s:base+m.s,e:base+m.e}));
+    text+=r.text;
+  });
+  return{text,marks:mergeMarks(marks)};
+}
 function toggleEditAll(){
   if(_editingAll){if(_editAllCommit)_editAllCommit(false);return;}
   if(_editing)return;
   _editingAll=true;editAllBtn.classList.add('dv-active');
+  const h=directorView.scrollHeight;
   directorView.innerHTML='';
   const ed=document.createElement('div');ed.className='dv-editable edit-all';ed.contentEditable='true';ed.spellcheck=false;
-  ed.innerHTML=state.text.trim()?richHtml(state.text,0,markList()):'<br>';
+  // render each paragraph as its own block so dividers + positions match Direct mode
+  const secs=getParagraphs(state.text);
+  if(secs.length){
+    secs.forEach(sec=>{const p=document.createElement('div');p.className='ed-para';p.innerHTML=richHtml(sec.text,sec.offset,markList())||'<br>';ed.appendChild(p);});
+  }else{ed.innerHTML='<div class="ed-para"><br></div>';}
   directorView.appendChild(ed);ed.focus();placeCaretEnd(ed);
   let done=false;
   const commit=cancel=>{if(done)return;done=true;_editingAll=false;_editAllCommit=null;hideBubble();editAllBtn.classList.remove('dv-active');
     if(cancel){renderDirectorView();return;}
-    const res=serializeEditable(ed);
+    const res=serializeEditAll(ed);
     getActiveScript().marks=mergeMarks(res.marks);   // whole-doc: offsets already global
     applyTextChange(res.text);
   };
-  _editAllCommit=commit;wireEditor(ed,commit);
+  _editAllCommit=commit;wireEditor(ed,commit);   // Enter inserts \n; blank line (\n\n) = new paragraph
 }
 
 // ── DIRECTOR VIEW ─────────────────────────────────────────
@@ -770,7 +810,7 @@ function renderDirectorView(){
     const sNote=notes[`s_${sIdx}`]||{};
     const div=document.createElement('div');
     div.className='dv-section'+(sNote.checked?' done':'');
-    div.addEventListener('dblclick',e=>{clearTimeout(_sentClickTimer);if(!_editing){e.preventDefault();editSection(div,sec);}});
+    div.addEventListener('dblclick',e=>{if(!_editing){e.preventDefault();editSection(div,sec);}});
     const sentsEl=document.createElement('div');
     sec.sentences.forEach((sent,sentIdx)=>{
       const key=`${sIdx}_${sentIdx}`;
@@ -792,14 +832,9 @@ function renderDirectorView(){
       const textEl=document.createElement('span');
       textEl.className='dv-sent-text';textEl.innerHTML=richHtml(sent.text,sent.offset,markList());
       textEl.onclick=e=>{
-        if(e.detail>1)return; // ignore the click half of a double-click (which opens edit)
-        const off=sent.offset;
-        clearTimeout(_sentClickTimer);
-        // delay the jump so a following double-click can cancel it (no jump-scroll → no shift)
-        _sentClickTimer=setTimeout(()=>{
-          const pct=lineSeekPct(off);
-          scrollPct=pct;sendUpdate('seek',pct);correctPreview(pct);renderHighlight();updateScrubber();
-        },210);
+        if(e.detail>1)return; // don't jump twice on the double-click that opens edit
+        const pct=lineSeekPct(sent.offset);
+        scrollPct=pct;sendUpdate('seek',pct);correctPreview(pct);renderHighlight();updateScrubber();
       };
       row.appendChild(textEl);
       // Marker auto-pause button (keyed on END of sentence, fires after sentence plays)
@@ -899,6 +934,7 @@ function highlightDirector(){
       }
     }
   }
+  updateLoopBox();
 }
 
 function exportWithNotes(){
@@ -960,7 +996,7 @@ function switchTo(id){
   textArea.value=state.text;renderPreview();
   sentenceStarts=buildSentenceStarts(state.text);sentenceIdx=0;
   renderTabs();renderControls();renderDirectorView();
-  sendScriptText();
+  sendScriptText();histReset();
   try{localStorage.setItem(SESSION_KEY,JSON.stringify(session));}catch(e){}
 }
 function addScript(){
@@ -976,7 +1012,7 @@ function deleteScript(id){
     modal.style.display='none';
     session.scripts=session.scripts.filter(s=>s.id!==id);
     if(session.activeId===id)session.activeId=session.scripts[0].id;
-    persistSession();syncScript();textArea.value=state.text;renderTabs();renderControls();renderDirectorView();sendScriptText();
+    persistSession();syncScript();textArea.value=state.text;renderTabs();renderControls();renderDirectorView();sendScriptText();histReset();
   };
   document.getElementById('deleteModalCancel').onclick=()=>{modal.style.display='none';};
   modal.onclick=e=>{if(e.target===modal)modal.style.display='none';};
@@ -1013,7 +1049,7 @@ function doLoadFile(file){
     try{const loaded=JSON.parse(ev.target.result);if(!loaded.scripts)throw 0;
       session=loaded;if(!session.notes)session.notes={};persistSession();syncScript();
       textArea.value=state.text;sentenceStarts=buildSentenceStarts(state.text);sentenceIdx=0;
-      renderTabs();renderControls();renderDirectorView();sendScriptText();
+      renderTabs();renderControls();renderDirectorView();sendScriptText();histReset();
     }catch(e){alert('Could not load session file.');}
   };reader.readAsText(file);fileInput.value='';
 }
@@ -1039,7 +1075,7 @@ restoreBtn.onclick=()=>{
     if(s&&s.session){
       session=s.session;if(!session.notes)session.notes={};
       syncScript();textArea.value=state.text;renderPreview();sentenceStarts=buildSentenceStarts(state.text);
-      renderTabs();renderControls();renderDirectorView();sendScriptText();
+      renderTabs();renderControls();renderDirectorView();sendScriptText();histReset();
     }
   }catch(e){}
   if(restoreNotice)restoreNotice.classList.remove('visible');
@@ -1269,16 +1305,27 @@ sectionPauseBtn.onclick=()=>{
   sectionPauseMode=!sectionPauseMode;
   sectionPauseBtn.classList.toggle('dv-active',sectionPauseMode);
   loopBtn.disabled=!sectionPauseMode;
-  if(!sectionPauseMode){loopMode=false;loopBtn.classList.remove('dv-active');loopBtn.style.opacity='';}
+  // Remember the loop choice: don't clear loopMode when pause turns off — just reflect it.
+  loopBtn.classList.toggle('dv-active',sectionPauseMode&&loopMode);
   directorView.classList.toggle('section-pause-on',sectionPauseMode);
+  updateLoopBox();
   sendSectionBreaks();
 };
 loopBtn.onclick=()=>{
   if(!sectionPauseMode)return;
   loopMode=!loopMode;
   loopBtn.classList.toggle('dv-active',loopMode);
+  updateLoopBox();
   sendSectionBreaks();
 };
+// Box the current section while looping (so it's clear only that paragraph plays).
+function loopActive(){return sectionPauseMode&&loopMode;}
+function updateLoopBox(){
+  if(!loopActive()){directorView.querySelectorAll('.dv-section.loop-current').forEach(s=>s.classList.remove('loop-current'));return;}
+  const hl=directorView.querySelector('mark.dv-hl');
+  const cur=hl?hl.closest('.dv-section'):directorView.querySelector('.dv-section');
+  directorView.querySelectorAll('.dv-section').forEach(s=>s.classList.toggle('loop-current',s===cur));
+}
 mirrorHBtn.onclick=()=>sendUpdate('mirroredH',!state.mirroredH);
 mirrorVBtn.onclick=()=>sendUpdate('mirroredV',!state.mirroredV);
 fontFamilySelect.onchange=()=>sendUpdate('fontFamily',fontFamilySelect.value);
@@ -1337,21 +1384,22 @@ try{if(localStorage.getItem('tp_text_collapsed')==='1')setTextCollapsed(true);}c
 
 // Hidden textarea is now only an internal buffer; editing happens inline in Direct mode.
 textArea.oninput=()=>{ applyTextChange(textArea.value); };
-undoBtn.onclick=()=>{textArea.focus();document.execCommand('undo');};
-redoBtn.onclick=()=>{textArea.focus();document.execCommand('redo');};
+undoBtn.onclick=()=>histGo(-1);
+redoBtn.onclick=()=>histGo(1);
 copyBtn.onclick=async()=>{try{await navigator.clipboard.writeText(state.text);const o=copyBtn.textContent;copyBtn.textContent='Copied';setTimeout(()=>{copyBtn.textContent=o;},1200);}catch(e){copyBtn.textContent='Failed';setTimeout(()=>{copyBtn.textContent='Copy';},1200);}};
 exportBtn.onclick=exportWithNotes;
 
 // ── KEYBOARD ──────────────────────────────────────────────
 document.addEventListener('keydown',e=>{
-  const inAnyInput=['INPUT','TEXTAREA'].includes(document.activeElement.tagName);
-  const inEditor=document.activeElement===textArea;
-  if((e.code==='Space'||e.key===' ')&&!inAnyInput){e.preventDefault();
+  // While editing (any contenteditable / input), keys belong to the editor — no prompter controls.
+  if(_editing||_editingAll||document.activeElement.isContentEditable||['INPUT','TEXTAREA'].includes(document.activeElement.tagName))return;
+  if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='z'){e.preventDefault();e.shiftKey?histGo(1):histGo(-1);return;}
+  if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='y'){e.preventDefault();histGo(1);return;}
+  if(e.code==='Space'||e.key===' '){e.preventDefault();
     const v=state.playState==='playing'?'paused':'playing';
     state.playState=v;playBtn.textContent=v==='playing'?'Pause':'Play';
     playBtn.classList.toggle('active',v==='playing');sendUpdate('playState',v);return;}
-  if(!inEditor&&(e.ctrlKey||e.metaKey)&&e.shiftKey&&e.key==='z'){textArea.focus();document.execCommand('redo');textArea.blur();return;}
-  if((e.key==='ArrowUp'||e.key==='ArrowDown')&&!inAnyInput){e.preventDefault();jumpToSentence(e.key==='ArrowDown'?sentenceIdx+1:sentenceIdx-1);}
+  if(e.key==='ArrowUp'||e.key==='ArrowDown'){e.preventDefault();jumpToSentence(e.key==='ArrowDown'?sentenceIdx+1:sentenceIdx-1);}
 });
 
 // ── SECTION PAUSE / LOOP ─────────────────────────────────
@@ -1429,7 +1477,7 @@ function enterMainPanel(){
   renderTabs();syncScript();textArea.value=state.text;
   sentenceStarts=buildSentenceStarts(state.text);
   setMode('director');                                   // 2.0: Direct is the only view
-  renderControls();
+  renderControls();histReset();
   updateMonitorScale();updateScrubber();updateMarginUI(state.marginL,state.marginR);checkRestore();
   setTimeout(()=>{updateReadTime();sendSectionBreaks();sendSentenceMarkers();},120);
   // Send current script to prompter now that the session is chosen
@@ -1536,6 +1584,6 @@ setInterval(()=>{
   }
 },2000);
 </script>
-<div style="position:fixed;bottom:6px;right:8px;font-size:10px;color:rgba(255,255,255,0.25);font-family:'Inter',sans-serif;pointer-events:none;z-index:9999;letter-spacing:.04em;">v2.0·p5</div>
+<div style="position:fixed;bottom:6px;right:8px;font-size:10px;color:rgba(255,255,255,0.25);font-family:'Inter',sans-serif;pointer-events:none;z-index:9999;letter-spacing:.04em;">v2.0·p6</div>
 </body>
 </html>
