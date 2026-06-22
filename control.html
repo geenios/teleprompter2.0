@@ -591,6 +591,7 @@ function jumpToSentence(idx){
   scrollPct=pct;sendUpdate('seek',pct);correctPreview(pct);renderHighlight();updateScrubber();
   textArea.scrollTop=(sentenceStarts[idx]/total)*textArea.scrollHeight;
   highlightLayer.scrollTop=textArea.scrollTop;
+  setLoopSection(sentenceStarts[idx]);
 }
 
 // ══ RICH TEXT 2.0 — typed marks {s,e,t,v}: t='u' underline | 'c' color (v=css color) ══
@@ -850,6 +851,7 @@ function renderDirectorView(){
         if(e.detail>1)return; // don't jump twice on the double-click that opens edit
         const pct=lineSeekPct(sent.offset);
         scrollPct=pct;sendUpdate('seek',pct);correctPreview(pct);renderHighlight();updateScrubber();
+        setLoopSection(sent.offset);
       };
       row.appendChild(textEl);
       // Marker auto-pause button (keyed on END of sentence, fires after sentence plays)
@@ -950,7 +952,7 @@ function highlightDirector(){
       }
     }
   }
-  updateLoopBox();
+  applyLoopBox();
 }
 
 function exportWithNotes(){
@@ -1203,6 +1205,7 @@ function scrubPx(dpx){
       highlightLayer.scrollTop=textArea.scrollTop;
     }
   } else highlightDirector();
+  setLoopSection();
 }
 let prevDragY=0;
 previewBox.addEventListener('pointerdown',e=>{draggingPreview=true;prevDragY=e.clientY;previewBox.setPointerCapture(e.pointerId);previewBox.classList.add('dragging');});
@@ -1296,6 +1299,7 @@ function seekThumb(tt){
     const targetTop=pct*textArea.scrollHeight;
     textArea.scrollTop=targetTop;highlightLayer.scrollTop=targetTop;
   } else highlightDirector();
+  setLoopSection();
 }
 scrubberThumb.addEventListener('pointerdown',e=>{e.preventDefault();draggingScrubber=true;const{top}=thumbGeo();dragScrubOff=e.clientY-scrubberTrack.getBoundingClientRect().top-top;scrubberThumb.setPointerCapture(e.pointerId);});
 scrubberThumb.addEventListener('pointermove',e=>{if(!draggingScrubber)return;seekThumb(e.clientY-scrubberTrack.getBoundingClientRect().top-dragScrubOff);});
@@ -1313,7 +1317,7 @@ playBtn.onclick=()=>{
   playBtn.classList.toggle('active',v==='playing');
   sendUpdate('playState',v);
 };
-resetBtn.onclick=()=>{sendUpdate('reset',true);scrollPct=0;previewPos=0;previewBox.scrollTop=0;sentenceIdx=0;renderHighlight();updateScrubber();};
+resetBtn.onclick=()=>{sendUpdate('reset',true);scrollPct=0;previewPos=0;previewBox.scrollTop=0;sentenceIdx=0;renderHighlight();updateScrubber();setLoopSection(0);};
 // Director toolbar
 const sectionPauseBtn=$('sectionPauseBtn'),loopBtn=$('loopBtn'),directorToolsEl=$('directorTools'),editAllBtn=$('editAllBtn');
 editAllBtn.onclick=()=>toggleEditAll();
@@ -1324,14 +1328,14 @@ sectionPauseBtn.onclick=()=>{
   // Remember the loop choice: don't clear loopMode when pause turns off — just reflect it.
   loopBtn.classList.toggle('dv-active',sectionPauseMode&&loopMode);
   directorView.classList.toggle('section-pause-on',sectionPauseMode);
-  updateLoopBox();
+  setLoopSection();
   sendSectionBreaks();
 };
 loopBtn.onclick=()=>{
   if(!sectionPauseMode)return;
   loopMode=!loopMode;
   loopBtn.classList.toggle('dv-active',loopMode);
-  updateLoopBox();
+  setLoopSection();
   sendSectionBreaks();
 };
 // Which section index a global char offset falls in.
@@ -1344,11 +1348,19 @@ function sectionIndexAt(off){
 // couple of trailing lines from the previous section (still showing right after a
 // loop-back to the top) don't flip the box backward.
 function loopActive(){return sectionPauseMode&&loopMode;}
-function updateLoopBox(){
-  const els=directorView.querySelectorAll('.dv-section');
-  if(!loopActive()||!els.length){els.forEach(s=>s.classList.remove('loop-current'));return;}
-  const r=getHighlightRange(),idx=sectionIndexAt((r.startChar+r.endChar)/2);
-  els.forEach((s,i)=>s.classList.toggle('loop-current',i===idx));
+// In loop mode the SAME section replays until you manually move, so the tint is
+// sticky: set only on manual seeks / toggles, never recomputed from the live
+// highlight during playback (which flips when the previous section's last line
+// is still showing right after a loop-back).
+let _loopSecIdx=-1;
+function applyLoopBox(){
+  const on=loopActive();
+  directorView.querySelectorAll('.dv-section').forEach((s,i)=>s.classList.toggle('loop-current',on&&i===_loopSecIdx));
+}
+function setLoopSection(off){
+  if(off==null){const r=getHighlightRange();off=(r.startChar+r.endChar)/2;}
+  _loopSecIdx=sectionIndexAt(off);
+  applyLoopBox();
 }
 // In edit-all, tint the paragraph block currently being read on the prompter.
 // A Range over [ls,le] within one paragraph block (walks its text nodes).
@@ -1635,6 +1647,6 @@ setInterval(()=>{
   }
 },2000);
 </script>
-<div style="position:fixed;bottom:6px;right:8px;font-size:10px;color:rgba(255,255,255,0.25);font-family:'Inter',sans-serif;pointer-events:none;z-index:9999;letter-spacing:.04em;">v2.0·p8</div>
+<div style="position:fixed;bottom:6px;right:8px;font-size:10px;color:rgba(255,255,255,0.25);font-family:'Inter',sans-serif;pointer-events:none;z-index:9999;letter-spacing:.04em;">v2.0·p9</div>
 </body>
 </html>
